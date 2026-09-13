@@ -16,6 +16,10 @@ extends CharacterBody3D
 
 signal died
 
+## Falling out of the world must never soft-lock: below this height the
+## player is snapped back to the last grounded safe position.
+const KILL_Z := -12.0
+
 var game: GrayboxGame
 var char_id: String = "regular"
 var char: Dictionary = {}
@@ -43,6 +47,10 @@ var health: PlayerHealth
 var mantle: PlayerMantle
 var interactor: PlayerInteractor
 var kit: KitBase
+
+## Last known grounded position above the void; the killZ fallback target.
+var _safe_pos := Vector3.ZERO
+var _safe_tick := 0.0
 
 func setup(p_char_id: String, p_armor: Dictionary, p_game: GrayboxGame) -> void:
 	char_id = p_char_id
@@ -106,6 +114,34 @@ func _physics_process(delta: float) -> void:
 		return
 	movement.tick(delta)
 	move_and_slide()
+	_track_safe_pos(delta)
+	_enforce_kill_z()
+
+## Called by the game right after the player is placed in the world.
+func anchor_safe() -> void:
+	_safe_pos = global_position
+	_safe_tick = 0.0
+
+func _track_safe_pos(delta: float) -> void:
+	# Lazy init: if the game never called anchor_safe(), the spawn point
+	# is the first sane position we see.
+	if _safe_pos == Vector3.ZERO and global_position.y > -5.0:
+		_safe_pos = global_position
+		return
+	_safe_tick += delta
+	if _safe_tick < 0.5:
+		return
+	_safe_tick = 0.0
+	if is_on_floor() and global_position.y > -5.0:
+		_safe_pos = global_position
+
+func _enforce_kill_z() -> void:
+	if global_position.y >= KILL_Z:
+		return
+	global_position = _safe_pos + Vector3(0, 0.5, 0)
+	velocity = Vector3.ZERO
+	if game != null and game.hud != null:
+		game.hud.add_killfeed("Recovered from fall")
 
 func _regen_mana(delta: float) -> void:
 	if max_mana > 0.0:

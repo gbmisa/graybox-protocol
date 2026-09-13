@@ -26,6 +26,7 @@ static func build(game: GrayboxGame, root: Node3D) -> void:
 	_build_water(root)
 	_build_north_fence(game, root)
 	_build_side_fences(root)
+	_build_world_bounds(root)
 	_build_staging(root)
 	_build_gatehouse(game, root)
 	_build_van(game, root)
@@ -84,6 +85,22 @@ static func _build_side_fences(root: Node3D) -> void:
 		Vector3(FENCE_T, FENCE_H, 85), BuildUtils.WALL_DARK)
 	BuildUtils.box(root, Vector3(105, FENCE_H * 0.5, -17.5),
 		Vector3(FENCE_T, FENCE_H, 85), BuildUtils.WALL_DARK)
+
+## Hard outer bounds for the whole playable rectangle, x[-111,111],
+## z[-81,96] (ground plate x[-110,110] z[-80,25], seabed z[25,95]).
+## The staging area sits OUTSIDE the north fence, so without these the
+## player can walk off the map edge in any direction. 6m tall: nothing
+## in the operative moveset clears it.
+static func _build_world_bounds(root: Node3D) -> void:
+	var h := 6.0
+	BuildUtils.box(root, Vector3(0, h * 0.5, -81),
+		Vector3(224, h, 0.6), BuildUtils.WALL_DARK)
+	BuildUtils.box(root, Vector3(0, h * 0.5, 96),
+		Vector3(224, h, 0.6), BuildUtils.WALL_DARK)
+	BuildUtils.box(root, Vector3(-111, h * 0.5, 7.5),
+		Vector3(0.6, h, 177), BuildUtils.WALL_DARK)
+	BuildUtils.box(root, Vector3(111, h * 0.5, 7.5),
+		Vector3(0.6, h, 177), BuildUtils.WALL_DARK)
 
 static func _build_staging(root: Node3D) -> void:
 	# ONE staging pad for every operative, facing the district (+z).
