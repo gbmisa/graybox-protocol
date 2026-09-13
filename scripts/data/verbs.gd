@@ -55,6 +55,8 @@ static func mantle_height(char_id: String) -> float:
 
 ## Verb name as it appears in the interaction prompt.
 static func verb_label(verb: String) -> String:
+	if verb.begins_with("key:"):
+		return "USE %s" % KeyData.key_name(verb.get_slice(":", 1))
 	match verb:
 		"lockpick": return "PICK LOCK"
 		"arcane": return "ARCANE UNLOCK"
@@ -63,6 +65,8 @@ static func verb_label(verb: String) -> String:
 
 ## Which operative archetype a verb belongs to — used to explain locked gates.
 static func verb_owner(verb: String) -> String:
+	if verb.begins_with("key:"):
+		return KeyData.key_name(verb.get_slice(":", 1))
 	match verb:
 		"lockpick": return "LOCKPICKS"
 		"arcane": return "ARCANE"

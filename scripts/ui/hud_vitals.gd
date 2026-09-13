@@ -8,6 +8,7 @@ var _hp_bar: ProgressBar
 var _hp_label: Label
 var _resource_label: Label
 var _mana_bar: ProgressBar
+var _keys_label: Label
 
 func build(root: Control) -> void:
 	var box := VBoxContainer.new()
@@ -23,6 +24,8 @@ func build(root: Control) -> void:
 	box.add_child(_resource_label)
 	_mana_bar = make_bar(200, 10)
 	box.add_child(_mana_bar)
+	_keys_label = make_label("", 12, Color(0.85, 0.65, 0.25))
+	box.add_child(_keys_label)
 	root.add_child(box)
 
 func on_player_changed() -> void:
@@ -46,3 +49,11 @@ func tick(_delta: float) -> void:
 		Color(0.4, 0.9, 1.0) if p.health.is_invulnerable() else Color.WHITE)
 	if p.max_mana > 0.0:
 		_mana_bar.value = clampf(p.mana / p.max_mana * 100.0, 0.0, 100.0)
+	# Minimal key inventory: a single line listing carried key names.
+	if p.keys.is_empty():
+		_keys_label.text = ""
+	else:
+		var names: Array = []
+		for k in p.keys:
+			names.append(KeyData.key_name(k))
+		_keys_label.text = "KEYS: %s" % ", ".join(names)

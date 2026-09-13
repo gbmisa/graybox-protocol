@@ -19,6 +19,7 @@ var abilities: HudAbilities
 var feed: HudFeed
 var reticle: HudReticle
 var prompt: HudPrompt
+var intel: HudIntel
 
 var _panels: Array[HudPanel] = []
 
@@ -34,7 +35,8 @@ func _ready() -> void:
 	feed = HudFeed.new()
 	reticle = HudReticle.new()
 	prompt = HudPrompt.new()
-	_panels = [vitals, abilities, feed, reticle, prompt]
+	intel = HudIntel.new()
+	_panels = [vitals, abilities, feed, reticle, prompt, intel]
 	for p in _panels:
 		add_child(p)
 		p.setup(self, root)
@@ -74,3 +76,9 @@ func show_prompt(text: String, usable: bool, progress: float) -> void:
 
 func hide_prompt() -> void:
 	prompt.hide_prompt()
+
+func show_intel(id: String) -> void:
+	intel.show_intel(id)
+
+func is_intel_open() -> bool:
+	return intel.is_open()

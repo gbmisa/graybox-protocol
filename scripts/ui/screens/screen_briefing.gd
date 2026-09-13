@@ -15,7 +15,7 @@ const CONTROLS := {
 	"wizard": [
 		"WASD move · MOUSE look · SPACE jump",
 		"LMB — fireball, arcing AoE (20 mana)",
-		"HOLD RMB — charged bolt, long range (35 mana)",
+		"HOLD RMB — charged bolt, 30m range (35 mana)",
 		"E — METEOR: ground-targeted, 1.1s delay, 90 dmg + burn pool (45 mana)",
 		"SHIFT — arcane dash: i-frames, no sprint (15 mana)",
 		"F — unward seals (25 mana)",
@@ -38,6 +38,8 @@ func refresh() -> void:
 	var c := CharData.get_char(game().selected_char)
 	v.add_child(text("MISSION BRIEFING — %s" % lvl["name"], 32, GOLD))
 	v.add_child(wrapped(str(lvl["desc"]), 18, 760, INFO))
+	if lvl.has("objective"):
+		v.add_child(wrapped(str(lvl["objective"]), 15, 760, Color.WHITE))
 	v.add_child(text("OPERATIVE: %s — %s" % [c["name"], c["role"]], 20, GOLD))
 	v.add_child(text("YOUR ROUTE", 20, GOLD))
 	v.add_child(wrapped(str(lvl["routes"][game().selected_char]), 17, 760,

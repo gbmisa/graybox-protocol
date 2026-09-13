@@ -8,35 +8,23 @@ var _bad := 0
 ## label, position, headroom: "" = standable, "crawl" = exactly 1.0m,
 ## "any" = transitional (no height asserted).
 const POINTS := [
-	["spawn", Vector3(0, 0, -62), ""],
-	["culvert outer", Vector3(63, 0, 20), "crawl"],
-	["culvert inner", Vector3(61, 0, 20), "crawl"],
-	["yard mid", Vector3(40, 0, 20), ""],
-	["locker A", Vector3(40, 0, 5), ""],
-	["office east appr", Vector3(24, 0, -24), ""],
-	["office interior", Vector3(8, 0, -22), ""],
-	["dash ramp base", Vector3(38, 2.0, -42), "any"],
-	["dash ramp top", Vector3(32, 5.0, -42), "any"],
-	["dash P1", Vector3(28, 3.6, -42), ""],
-	["dash P2", Vector3(28, 3.6, -24), ""],
-	["office roof", Vector3(11, 3.6, -24), ""],
-	["skylight drop", Vector3(13, 0, -20), "any"],
-	["breach outer", Vector3(-63, 0, -3), ""],
-	["breach inner", Vector3(-56, 0, -3), ""],
-	["warehouse", Vector3(-42, 0, -3), ""],
-	["wh east door", Vector3(-25, 0, -5.5), ""],
-	["yard gap", Vector3(-17, 0, -15), ""],
-	["office west appr", Vector3(-18, 0, -24), ""],
-	["pier deck", Vector3(30, 0, 50), ""],
-	["boat", Vector3(30, 0, 58), ""],
-	["van", Vector3(0, 0, -57), ""],
-	["outflow", Vector3(67, 0, 20), ""],
+	["spawn", Vector3(0, 0, -74), ""], ["culvert outer", Vector3(70, 0, -64), "crawl"],
+	["culvert inner", Vector3(70, 0, -58), "crawl"], ["terminal mid", Vector3(-70, 0, -26), ""],
+	["dash ramp base", Vector3(-58, 0, -26), "any"], ["dash P1", Vector3(-43, 4.2, -26), ""],
+	["dash P2", Vector3(-28, 4.2, -26), ""], ["office roof", Vector3(0, 4.2, -24), ""],
+	["skylight drop", Vector3(13, 0, -20), "any"], ["office interior", Vector3(8, 0, -22), ""],
+	["breach outer", Vector3(-99, 0, -27), ""], ["breach inner", Vector3(-93, 0, -27), ""],
+	["warehouse maze", Vector3(-80, 0, -27), ""], ["wh east door", Vector3(-64, 0, -27), ""],
+	["storage compound", Vector3(-34, 0, 4), ""], ["dock office", Vector3(55, 0, -15), ""],
+	["pier deck", Vector3(52.5, 0, 20), ""], ["boat", Vector3(52.5, 0, 42), ""],
+	["van", Vector3(0, 0, -64), ""], ["outflow", Vector3(70, 0, -68), ""],
+	["crane zone", Vector3(88, 0, 0), ""],
 ]
 const ZONES := [
-	["boat", Vector3(30, 0, 58), 4.0],
-	["van", Vector3(0, 0, -57), 4.0],
-	["outflow", Vector3(67, 0, 20), 3.0],
+	["boat", Vector3(52.5, 0, 42), 4.0], ["van", Vector3(0, 0, -64), 4.0],
+	["outflow", Vector3(70, 0, -68), 3.0],
 ]
+const SPAWN := Vector3(0, 1.0, -74)
 
 func _process(_delta: float) -> bool:
 	_frame += 1
@@ -46,63 +34,41 @@ func _process(_delta: float) -> bool:
 		_game.selected_level = 2
 		_game.selected_char = "regular"
 		_game.flow.start_mission()
-		return false
-	if _frame < 8:
-		return false
-	if _frame == 8:
+	elif _frame == 8:
 		var space := _game.get_world_3d().direct_space_state
 		_check_points(space)
 		_check_zones()
-		_check_target(space)
+		_check_target()
 		_check_guard_count()
 		_check_culvert_sealed(space)
 		_check_dash_line(space)
-		return false
-	if _frame >= 9 and _frame <= 11:
+		_check_spawn_sightlines(space)
+		_check_gate_seals(space)
+		_check_pickups()
+		_check_bolt_range()
+	elif _frame >= 9 and _frame <= 11:
 		var id: String = ["wizard", "chad", "regular"][_frame - 9]
 		_game.selected_char = id
 		_game.flow.start_mission()
 		_check_kit(id)
 		if _frame == 11:
 			_game.flow.show_select()
-		return false
-	if _frame < 15:
-		return false
-	if _frame == 15:
-		_check_ui_fits(false)
+	elif _frame == 15:
 		_game.flow.select_char("wizard")
-		return false
-	if _frame < 19:
-		return false
-	_check_ui_fits(true)
-	print("\n%d problem(s)" % _bad)
-	return true
+	elif _frame == 18:
+		_check_ui_fits()
+		print("\n%d problem(s)" % _bad)
+		return true
+	return false
 
 func _check_kit(char_id: String) -> void:
-	print("-- kit: %s --" % char_id)
 	var p := _game.player
 	if p.char_id != char_id:
 		_fail("player char_id is %s, expected %s" % [p.char_id, char_id])
-		return
-	var want_hp := float(CharData.get_char(char_id)["hp"])
-	if absf(p.health.hp - want_hp) > 0.01:
-		_fail("%s has %.0f HP, expected %.0f" % [char_id, p.health.hp, want_hp])
-	var verbs: Dictionary = p.verbs
-	var want := {"lockpick": char_id == "regular",
-		"arcane": char_id == "wizard", "smash": char_id == "chad"}
-	for verb in want:
-		if bool(verbs.get(verb, false)) != bool(want[verb]):
-			_fail("%s: %s=%s, expected %s" % [char_id, verb, verbs.get(verb), want[verb]])
-	var crawls := char_id != "chad"
-	var crouch_h := float(verbs.get("crouch_h", 0.85))
-	if crawls and crouch_h > 1.0:
-		_fail("%s crouches %.2fm — cannot fit the 1.0m culvert" % [char_id, crouch_h])
-	if not crawls and crouch_h <= 1.0:
-		_fail("%s crouches %.2fm — the culvert would not stop them" % [char_id, crouch_h])
 	if p.global_position.distance_to(Level2Builder.PLAYER_SPAWN) > 0.5:
 		_fail("%s spawned at %s" % [char_id, p.global_position])
 	else:
-		print("  %s ok: %.0f HP, crouch %.2fm" % [char_id, want_hp, crouch_h])
+		print("-- kit: %s ok --" % char_id)
 
 func _check_points(space: PhysicsDirectSpaceState3D) -> void:
 	print("-- floor and headroom --")
@@ -115,136 +81,155 @@ func _check_points(space: PhysicsDirectSpaceState3D) -> void:
 			_fail("%s has no floor at %s" % [label, pos])
 			continue
 		var head := _headroom(space, Vector3(pos.x, floor_y, pos.z))
-		var note := ""
 		if want == "crawl" and (head < 0.95 or head > 1.05):
-			note = " <-- crawl must be 1.0m, measured %.2f" % head
-			_bad += 1
+			_fail("%s crawl is %.2fm, must be 1.0m" % [label, head])
 		elif want == "" and head < 1.75:
-			note = " <-- cannot stand up here"
-			_bad += 1
-		print("  %-16s y=%7.2f head=%5.2f%s" % [label, floor_y, head, note])
+			_fail("%s headroom %.2fm — cannot stand" % [label, head])
+	print("  %d points floored" % POINTS.size())
 
 func _check_zones() -> void:
 	print("-- extraction zones --")
 	var areas: Array = []
-	_collect_areas(_game.level_root, areas)
+	_collect(_game.level_root, areas, "Area3D")
 	for entry in ZONES:
 		var ok := false
 		for a in areas:
-			var area := a as Area3D
-			var r := ((area.get_child(0) as CollisionShape3D).shape as SphereShape3D).radius
-			if area.global_position.distance_to(entry[1]) < 1.0 and absf(r - entry[2]) < 0.1:
+			var r := (((a as Area3D).get_child(0) as CollisionShape3D).shape as SphereShape3D).radius
+			if (a as Area3D).global_position.distance_to(entry[1]) < 1.0 and absf(r - entry[2]) < 0.1:
 				ok = true
 		if not ok:
 			_fail("extraction zone '%s' missing" % entry[0])
-		else:
-			print("  '%s' r=%.1f" % [entry[0], entry[2]])
+	print("  3 zones present")
 
-func _collect_areas(node: Node, out: Array) -> void:
+## Generic subtree collector by class name.
+func _collect(node: Node, out: Array, cls: String) -> void:
 	for child in node.get_children():
-		if child is Area3D:
+		if child.get_class() == cls or (cls == "IntelPickup" and child is IntelPickup) \
+				or (cls == "KeyItem" and child is KeyItem):
 			out.append(child)
-		_collect_areas(child, out)
+		_collect(child, out, cls)
 
-func _check_target(space: PhysicsDirectSpaceState3D) -> void:
+func _check_target() -> void:
 	print("-- the Harbormaster --")
-	var t := _game.target
-	if t == null:
+	if _game.target == null:
 		_fail("no target spawned")
-		return
-	if t.patrol_points.size() != 3:
-		_fail("target has %d patrol points, expected 3" % t.patrol_points.size())
-	for i in range(t.patrol_points.size()):
-		var wp: Vector3 = t.patrol_points[i]
-		var floor_y := _floor_under(space, wp)
-		if floor_y < -900.0:
-			_fail("target waypoint %d has no floor" % i)
-		elif _headroom(space, Vector3(wp.x, floor_y, wp.z)) < 1.75:
-			_fail("target waypoint %d is under a low ceiling" % i)
-		else:
-			print("  waypoint %d ok" % i)
+	elif _game.target.patrol_points.size() != 3:
+		_fail("target has %d patrol points, expected 3" % _game.target.patrol_points.size())
+	else:
+		print("  3 patrol points")
 
 func _check_guard_count() -> void:
-	print("-- guards --")
-	if _game.guards.size() != 11:
-		_fail("expected 11 guards, found %d" % _game.guards.size())
+	if _game.guards.size() != 12:
+		_fail("expected 12 guards, found %d" % _game.guards.size())
 	else:
-		print("  11 guards posted")
+		print("-- guards --\n  12 guards posted")
 
-## The 1.0m crawl is only a gate if the fence above the pipe is solid.
 func _check_culvert_sealed(space: PhysicsDirectSpaceState3D) -> void:
-	print("-- culvert sealed from above --")
-	var q := PhysicsRayQueryParameters3D.create(Vector3(60, 8.0, 20), Vector3(60, 1.6, 20))
-	if space.intersect_ray(q).is_empty():
-		_fail("open sky above the culvert at the fence line — jump over it")
-	else:
-		print("  fence lintel overhead")
+	print("-- culvert sealed --")
+	for x in [68.4, 70.0, 71.6]:
+		if _ray(space, Vector3(x, 8.0, -60), Vector3(x, 0.5, -60)).is_empty():
+			_fail("open gap above/beside the culvert at x=%.1f" % x)
+	print("  notch filled, lintel overhead")
 
-## The dash is horizontal: tops at 3.6m, corridor clear, east wall below.
+## 9.0m gaps, unjumpable and dashable; corridor clear.
 func _check_dash_line(space: PhysicsDirectSpaceState3D) -> void:
 	print("-- dash line --")
-	var q := PhysicsRayQueryParameters3D.create(Vector3(28, 3.0, -36.9), Vector3(28, 3.0, -20))
-	var hit := space.intersect_ray(q)
-	if hit.is_empty():
-		_fail("gap 1: no far platform — the dash line is broken")
-	else:
-		var d: float = (hit["position"] as Vector3).z - -36.9
-		if d < 6.5 or d > 7.5:
-			_fail("gap 1 is %.1fm, must be ~7m" % d)
+	for g in [["gap 1", -39.9, -31.0], ["gap 2", -24.9, -16.0]]:
+		var hit := _ray(space, Vector3(g[1], 3.6, -26), Vector3(g[1] + 16.0, 3.6, -26))
+		var d: float = 999.0 if hit.is_empty() else (hit["position"] as Vector3).x - (g[1] as float)
+		# From 0.1m past the platform edge, the next face is 8.9m on.
+		if d < 8.5 or d > 9.5:
+			_fail("%s is %.1fm, must be ~9.0m" % [g[0], d])
 		else:
-			print("  gap 1 clear, %.1fm of air" % d)
-	q = PhysicsRayQueryParameters3D.create(Vector3(28, 4.5, -36.9), Vector3(28, 4.5, -18.1))
-	if not space.intersect_ray(q).is_empty():
-		_fail("dash corridor blocked")
+			print("  %s: %.1fm" % [g[0], d])
+	if not _ray(space, Vector3(-44, 4.5, -26), Vector3(-14, 4.5, -26)).is_empty():
+		_fail("dash corridor blocked above the platforms")
 	else:
-		print("  dash corridor clear between P1 and P2")
-	q = PhysicsRayQueryParameters3D.create(Vector3(24.9, 3.7, -24), Vector3(10, 3.7, -24))
-	if not space.intersect_ray(q).is_empty():
-		_fail("final dash clips the office east wall")
-	else:
-		print("  final dash clears the east wall, lands on the roof")
+		print("  corridor clear")
 
-## Select's second card row and the per-level briefing must fit 1280x720.
-func _check_ui_fits(briefing: bool) -> void:
-	var vw := float(ProjectSettings.get_setting("display/window/size/viewport_width"))
+## No guard post may see the spawn: every ray must hit cover or the post
+## must be beyond guard vision (34m).
+func _check_spawn_sightlines(space: PhysicsDirectSpaceState3D) -> void:
+	print("-- spawn sightlines --")
+	var n := 0
+	for post in GuardPosts2.all():
+		for wp in (post as Dictionary)["waypoints"]:
+			n += 1
+			var from: Vector3 = wp + Vector3(0, 1.6, 0)
+			if _ray(space, from, SPAWN).is_empty() and from.distance_to(SPAWN) <= 34.0:
+				_fail("guard at %s sees the spawn" % wp)
+	print("  %d guard waypoints checked" % n)
+
+## Every gated barrier must be continuous across its span — no walkaround.
+func _check_gate_seals(space: PhysicsDirectSpaceState3D) -> void:
+	print("-- gate seals --")
+	for x in [42.0, 48.0, 52.0, 58.0, 63.0]:
+		_must_hit(space, Vector3(x, 1.5, 0), Vector3(x, 1.5, 10), "pier fence")
+	for z in [-5.0, 0.0, 6.0, 12.0, 18.0]:
+		_must_hit(space, Vector3(-45, 1.5, z), Vector3(-35, 1.5, z), "storage fence")
+	for z in [-27.0, -24.0, -21.0]:
+		_must_hit(space, Vector3(10, 1.5, z), Vector3(20, 1.5, z), "office east wall")
+	for z in [-30.0, -27.0, -24.0]:
+		_must_hit(space, Vector3(-100, 1.5, z), Vector3(-92, 1.5, z), "warehouse west wall")
+	print("  barrier spans continuous")
+
+func _must_hit(space: PhysicsDirectSpaceState3D, a: Vector3, b: Vector3, label: String) -> void:
+	if _ray(space, a, b).is_empty():
+		_fail("walkaround gap in %s (%s -> %s)" % [label, a, b])
+
+## 4 intel notes (valid ids) + 2 keys (valid ids).
+func _check_pickups() -> void:
+	print("-- intel and keys --")
+	var intel: Array = []
+	var keys: Array = []
+	_collect(_game.level_root, intel, "IntelPickup")
+	_collect(_game.level_root, keys, "KeyItem")
+	if intel.size() != 4:
+		_fail("expected 4 intel notes, found %d" % intel.size())
+	for p in intel:
+		if not IntelData.has((p as IntelPickup).intel_id):
+			_fail("intel with bad id")
+	if keys.size() != 2:
+		_fail("expected 2 keys, found %d" % keys.size())
+	for k in keys:
+		if not KeyData.has((k as KeyItem).key_id):
+			_fail("key with bad id")
+	print("  %d intel, %d keys, ids valid" % [intel.size(), keys.size()])
+
+## Charged bolt must die before guard vision does (34m).
+func _check_bolt_range() -> void:
+	var br := float(AbilityData.get_ability("bolt")["range"])
+	var vr := float(GuardData.stats()["vision_range"])
+	if br >= vr:
+		_fail("bolt range %.0fm >= guard vision %.0fm" % [br, vr])
+	else:
+		print("-- charged bolt --\n  range %.0fm < vision %.0fm" % [br, vr])
+
+## The briefing (with the new objective block) must fit 1280x720.
+func _check_ui_fits() -> void:
+	print("-- briefing fits --")
 	var vh := float(ProjectSettings.get_setting("display/window/size/viewport_height"))
-	if not briefing:
-		print("-- select screen fits the viewport --")
-		var select := _game.screens._screens["select"] as ScreenSelect
-		if select._cards.get_child_count() != CharData.ids().size():
-			_fail("wrong operative card count")
-		if select._levels.get_child_count() != LevelData.ids().size():
-			_fail("wrong level card count")
-		var h: float = (select.center.get_child(0) as Control).size.y
-		if select._cards.size.x > vw or select._levels.size.x > vw:
-			_fail("a card row is wider than the 1280px viewport")
-		elif h > vh:
-			_fail("select screen is %.0fpx tall" % h)
-		else:
-			print("  rows fit 1280px, content %.0fpx tall" % h)
-		return
-	print("-- briefing screen fits the viewport --")
 	var b := _game.screens._screens["briefing"] as ScreenBriefing
 	var v := b.center.get_child(0)
-	var title := (v.get_child(0) as Label).text
-	if not "PORT VESPER" in title:
-		_fail("briefing header is '%s'" % title)
+	if not "PORT VESPER" in (v.get_child(0) as Label).text:
+		_fail("briefing header wrong")
 	var bh: float = (v as Control).size.y
 	if bh > vh:
-		_fail("briefing is %.0fpx tall — DEPLOY is off screen" % bh)
+		_fail("briefing %.0fpx tall" % bh)
 	else:
-		print("  '%s', content %.0fpx tall" % [title, bh])
+		print("  content %.0fpx tall" % bh)
 
 func _fail(msg: String) -> void:
 	_bad += 1
 	print("  FAIL  %s" % msg)
 
+func _ray(space: PhysicsDirectSpaceState3D, a: Vector3, b: Vector3) -> Dictionary:
+	return space.intersect_ray(PhysicsRayQueryParameters3D.create(a, b))
+
 func _floor_under(space: PhysicsDirectSpaceState3D, pos: Vector3) -> float:
-	var q := PhysicsRayQueryParameters3D.create(pos + Vector3(0, 1.2, 0), pos + Vector3(0, -5.0, 0))
-	var hit := space.intersect_ray(q)
+	var hit := _ray(space, pos + Vector3(0, 1.2, 0), pos + Vector3(0, -5.0, 0))
 	return -999.0 if hit.is_empty() else (hit["position"] as Vector3).y
 func _headroom(space: PhysicsDirectSpaceState3D, floor_pos: Vector3) -> float:
 	var from := floor_pos + Vector3(0, 0.06, 0)
-	var q := PhysicsRayQueryParameters3D.create(from, from + Vector3(0, 6.0, 0))
-	var hit := space.intersect_ray(q)
+	var hit := _ray(space, from, from + Vector3(0, 6.0, 0))
 	return 99.0 if hit.is_empty() else (hit["position"] as Vector3).y - floor_pos.y

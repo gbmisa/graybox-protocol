@@ -24,8 +24,16 @@ const ACCENT_COLORS := {
 
 var game: GrayboxGame
 var display_name: String = "DOOR"
+## Verb costs for opening from the locked side: {"time":, "noise":, "mana":}.
+## Keys are written "key:<id>" (e.g. "key:pier_key") and are checked against
+## the player's key inventory instead of their operative verbs.
 var open_methods: Dictionary = {}
 var is_open: bool = false
+## Optional free-exit side, as a direction FROM the gate TO its interior.
+## When set, a player approaching from the interior gets an instant, silent,
+## free EXIT prompt and walks through without the gated verb, mana, or noise.
+## Entry from the outside still requires the gated method. Zero = no free exit.
+var exit_side: Vector3 = Vector3.ZERO
 ## How far the panel travels when it opens. Defaults to sinking into the floor.
 var open_offset: Vector3 = Vector3.ZERO
 
@@ -91,20 +99,40 @@ func primary_verb() -> String:
 			return v
 	return ""
 
-## The method this operative would use, or {} if they have no way through.
-func method_for(char_id: String) -> Dictionary:
+## The method this player would use, or {} if they have no way through.
+## A free exit (player on the exit_side) returns an instant silent method
+## under the "exit" verb so it never costs mana or makes noise.
+func method_for(player: Player) -> Dictionary:
+	if _is_on_exit_side(player):
+		return {"verb": "exit", "time": 0.0, "noise": 0.0, "mana": 0.0}
 	for verb in open_methods.keys():
-		if VerbData.has_verb(char_id, verb):
+		if verb.begins_with("key:"):
+			if player.has_key(verb.get_slice(":", 1)):
+				var km: Dictionary = open_methods[verb].duplicate()
+				km["verb"] = verb
+				return km
+			continue
+		if VerbData.has_verb(player.char_id, verb):
 			var m: Dictionary = open_methods[verb].duplicate()
 			m["verb"] = verb
 			return m
 	return {}
 
+## True when the player stands on the free-exit (interior) side of the gate.
+## Uses the full 3D offset so a skylight can declare "interior is below".
+func _is_on_exit_side(player: Player) -> bool:
+	if exit_side == Vector3.ZERO or player == null:
+		return false
+	var to_player: Vector3 = player.global_position - global_position
+	if to_player.length() < 0.001:
+		return false
+	return to_player.normalized().dot(exit_side.normalized()) > 0.3
+
 ## What the HUD should draw. `usable` false means show it greyed.
 func prompt_for(player: Player) -> Dictionary:
 	if is_open:
 		return {}
-	var m := method_for(player.char_id)
+	var m := method_for(player)
 	if m.is_empty():
 		var needs: Array = []
 		for verb in open_methods.keys():
@@ -119,6 +147,9 @@ func prompt_for(player: Player) -> Dictionary:
 			"text": "%s — NEED %d MANA" % [display_name, int(mana)],
 			"usable": false,
 		}
+	if String(m.get("verb", "")) == "exit":
+		return {"text": "EXIT — %s" % display_name, "usable": true,
+			"time": 0.0, "verb": "exit"}
 	return {
 		"text": "%s  %s" % [VerbData.verb_label(m["verb"]), display_name],
 		"usable": true,
@@ -133,7 +164,7 @@ func open(opener: Node) -> void:
 	is_open = true
 	var m: Dictionary = {}
 	if opener is Player:
-		m = method_for((opener as Player).char_id)
+		m = method_for(opener as Player)
 	var noise := float(m.get("noise", 0.0))
 	if noise > 0.0 and game != null:
 		game.emit_noise(global_position, noise)

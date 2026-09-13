@@ -1,126 +1,93 @@
 class_name Sec2Perimeter
 extends RefCounted
-## PORT VESPER shell: night sky, ground apron, water, perimeter fence with its
-## openings, north gate checkpoint (van extraction), south pier (boat
-## extraction). Every operative starts north of the fence and walks in through
-## their own vector — the gate itself is just scenery with guards on it.
+## PORT VESPER perimeter: the ground plate, the water boundary, the north
+## fence, the spawn staging, and the north van extraction.
 ##
-## Openings in the fence:
-##   north  x [-3, 3]      open gateway (guarded checkpoint)
-##   east   z = 20, the drainage culvert passes UNDER the fence through a
-##          1.4m notch (built by Sec2Culvert); the lintel above the pipe is
-##          what makes the 1.0m crawl unskippable
-##   south  x [44, 50]     open pier walkway
-##   south  x [28.5, 31.5] PIER GATE [lockpick] — the Regular's shortcut
-##
-## The west fence stops at the warehouse walls (z [-18, 12]): the warehouse's
-## own corrugated west wall is the perimeter there, and Chad's breach goes
-## through it.
+## The level runs east-west along the harbor: x[-110,110], z[-80,25].
+## WATER is the southern boundary (z > 25) — no fence along it, the pier
+## overhangs it. The north fence (z=-60) has a vehicle gateway (x[-3,3])
+## and a culvert notch at x=70 (the pipe itself is built by Sec2Culvert).
 
 const FENCE_H := 4.0
-const FENCE_T := 0.6
+const FENCE_T := 0.4
 
-static func build(root: Node3D, game: GrayboxGame) -> void:
-	_environment(root)
-	_ground(root)
-	_water(root)
-	_fence(root, game)
-	_north_gate(root, game)
-	_pier(root, game)
-	_signage(root)
+static func build(game: GrayboxGame, root: Node3D) -> void:
+	# Ground plate. The water region gets its own lower seabed plate.
+	BuildUtils.box(root, Vector3(0, -0.3, -27.5), Vector3(220, 0.6, 105),
+		BuildUtils.GROUND)
+	BuildUtils.label(root, "PORT VESPER — CUSTOMS IMPOUND",
+		Vector3(0, 5.2, -60), Color(1.0, 0.84, 0.37), 64)
+	_build_water(root)
+	_build_north_fence(root)
+	_build_side_fences(root)
+	_build_staging(root)
+	_build_van(game, root)
 
-static func _environment(root: Node3D) -> void:
-	var we := WorldEnvironment.new()
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.015, 0.025, 0.055)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.35, 0.44, 0.58)
-	env.ambient_light_energy = 0.75
-	we.environment = env
-	root.add_child(we)
-	# Moonlight: dim, blue, shadowed — the only global light. Interiors and
-	# the yard get their own lamps; anything without one is a black void.
-	var moon := DirectionalLight3D.new()
-	moon.rotation_degrees = Vector3(-48, -30, 0)
-	moon.light_color = Color(0.55, 0.66, 0.92)
-	moon.light_energy = 0.35
-	moon.shadow_enabled = true
-	root.add_child(moon)
+static func _build_water(root: Node3D) -> void:
+	# Seabed 0.8m below the apron; the shoreline step is mantleable so the
+	# water is a soft boundary, not a trap.
+	BuildUtils.box(root, Vector3(0, -1.1, 60), Vector3(220, 0.6, 70),
+		Color(0.08, 0.10, 0.12))
+	var water := MeshInstance3D.new()
+	var wm := BoxMesh.new()
+	wm.size = Vector3(220, 0.4, 70)
+	water.mesh = wm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.10, 0.28, 0.42, 0.65)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.roughness = 0.25
+	mat.metallic = 0.1
+	water.material_override = mat
+	water.position = Vector3(0, -0.35, 60)
+	root.add_child(water)
 
-## Apron stops at the shoreline (z = 52); the seabed continues under the water.
-static func _ground(root: Node3D) -> void:
-	BuildUtils.plate(root, -80, 80, -80, 52, 0.0, 1.0, BuildUtils.STREET)
-	# Water strip z [45, 52] is apron — the long way to the pier on foot.
-	BuildUtils.plate(root, -80, 80, 52, 90, -0.8, 1.0, BuildUtils.GROUND)
+static func _fence_run(root: Node3D, cx: float, width: float) -> void:
+	BuildUtils.box(root, Vector3(cx, FENCE_H * 0.5, -60),
+		Vector3(width, FENCE_H, FENCE_T), BuildUtils.WALL_DARK)
 
-static func _water(root: Node3D) -> void:
-	# Opaque night water. Non-colliding: it is a visual plane over the seabed.
-	# Falling in lands on the seabed 0.8m down — mantleable by everyone, so
-	# there is no soft-lock, just wet feet.
-	BuildUtils.box(root, Vector3(0, -0.35, 71), Vector3(160, 0.3, 38),
-		Color(0.04, 0.10, 0.20), false)
-
-static func _fence(root: Node3D, game: GrayboxGame) -> void:
-	var c := BuildUtils.WALL_DARK
-	var y := FENCE_H * 0.5
-	# North: gateway gap at x [-3, 3].
-	BuildUtils.box(root, Vector3(-31.5, y, -50), Vector3(57, FENCE_H, FENCE_T), c)
-	BuildUtils.box(root, Vector3(31.5, y, -50), Vector3(57, FENCE_H, FENCE_T), c)
-	# East: the fence runs full height; the culvert pipe passes UNDER it through
-	# a 1.4m notch. The lintel above the pipe (y 1.4–4.0) is what makes the
-	# 1.0m crawl unskippable — without it the pipe's 1.4m roof is a speed
-	# bump a 1.84m jump clears, and the gate means nothing.
-	BuildUtils.box(root, Vector3(60, y, -15.6), Vector3(FENCE_T, FENCE_H, 68.8), c)
-	BuildUtils.box(root, Vector3(60, y, 35.6), Vector3(FENCE_T, FENCE_H, 28.8), c)
-	BuildUtils.box(root, Vector3(60, 2.7, 20), Vector3(FENCE_T, 2.6, 2.4), c)
-	# West: warehouse walls cover z [-18, 12]; fence fills the rest.
-	BuildUtils.box(root, Vector3(-60, y, -34), Vector3(FENCE_T, FENCE_H, 32), c)
-	BuildUtils.box(root, Vector3(-60, y, 28.5), Vector3(FENCE_T, FENCE_H, 33), c)
-	# South: open pier walkway at x [44, 50]; lockpick pier gate at x = 30.
-	BuildUtils.box(root, Vector3(-16.5, y, 45), Vector3(87, FENCE_H, FENCE_T), c)
-	BuildUtils.box(root, Vector3(38.5, y, 45), Vector3(11, FENCE_H, FENCE_T), c)
-	BuildUtils.box(root, Vector3(55, y, 45), Vector3(10, FENCE_H, FENCE_T), c)
-	# Lintel over the pier gate; the door sinks into the floor when opened.
-	BuildUtils.box(root, Vector3(30, 3.5, 45), Vector3(3.6, 1.0, FENCE_T), c)
-	LockedDoor.create(game, root, "PIER GATE",
-		Vector3(30, 1.5, 45), Vector3(3, 3, FENCE_T), ["lockpick"])
-	BuildUtils.label(root, "PIER — AUTHORIZED PERSONNEL",
-		Vector3(30, 4.6, 44), Color(0.35, 0.70, 1.0), 30)
-
-static func _north_gate(root: Node3D, game: GrayboxGame) -> void:
-	# Checkpoint booth and barrier arm outside the gateway.
-	BuildUtils.box(root, Vector3(6, 1.5, -54), Vector3(3, 3, 3), BuildUtils.WALL)
-	BuildUtils.box(root, Vector3(0, 1.0, -52), Vector3(7, 0.25, 0.4),
-		Color(0.8, 0.75, 0.2))
-	BuildUtils.lamp(root, Vector3(0, 4.5, -53), BuildUtils.LAMP_SERVICE, 2.4, 18.0)
-	BuildUtils.zone(root, game, "van", Vector3(0, 0, -57), 4.0)
-	BuildUtils.label(root, "NORTH GATE — ALL VEHICLES SUBJECT TO SEARCH",
-		Vector3(0, 5.5, -50), Color(1.0, 0.52, 0.18), 36)
-	BuildUtils.label(root, "(none are)",
-		Vector3(0, 4.6, -50), Color(0.6, 0.62, 0.68), 28)
-
-static func _pier(root: Node3D, game: GrayboxGame) -> void:
-	# Deck over the water, z [45, 62]. Piles down to the seabed.
-	BuildUtils.plate(root, 27, 33, 45, 62, 0.0, 0.6, BuildUtils.CONCRETE)
-	for px in [27.6, 32.4]:
-		for pz in [48, 54, 60]:
-			BuildUtils.box(root, Vector3(px, -0.6, pz), Vector3(0.5, 1.6, 0.5),
-				BuildUtils.PIPE)
-	# The boat: hull, cabin, a lamp. It never moves; it is an exit.
-	BuildUtils.box(root, Vector3(30, 0.5, 58), Vector3(4.2, 1.4, 8.5),
+static func _build_north_fence(root: Node3D) -> void:
+	# z=-60, x[-100,100]. Gaps: vehicle gateway x[-3,3], culvert notch x[68,72].
+	_fence_run(root, -51.5, 97.0)   # x[-100,-3]
+	_fence_run(root, 35.5, 65.0)    # x[3,68]
+	_fence_run(root, 86.0, 28.0)    # x[72,100]
+	# Gateway frame: posts + lintel, 4.2m clear.
+	for px in [-3.4, 3.4]:
+		BuildUtils.box(root, Vector3(px, 2.1, -60), Vector3(0.8, 4.2, 0.8),
+			BuildUtils.METAL)
+	BuildUtils.box(root, Vector3(0, 4.5, -60), Vector3(7.6, 0.6, 0.8),
 		BuildUtils.METAL)
-	BuildUtils.box(root, Vector3(30, 1.7, 57), Vector3(2.6, 1.6, 3.2),
-		BuildUtils.WALL)
-	BuildUtils.lamp(root, Vector3(30, 3.4, 58), BuildUtils.LAMP_SERVICE, 2.0, 12.0)
-	BuildUtils.zone(root, game, "boat", Vector3(30, 0, 58), 4.0)
-	BuildUtils.label(root, "PIER 3 — FERRY",
-		Vector3(30, 4.2, 52), Color(0.2, 1.0, 0.35), 36)
-	BuildUtils.label(root, "(it never comes)",
-		Vector3(30, 3.4, 52), Color(0.6, 0.62, 0.68), 26)
+	# Culvert notch lintel: the fence continues above the 1.0m pipe.
+	BuildUtils.box(root, Vector3(70, 2.8, -60), Vector3(4.0, 2.4, FENCE_T),
+		BuildUtils.WALL_DARK)
+	BuildUtils.label(root, "NORTH GATE", Vector3(0, 5.6, -60), Color(1.0, 0.84, 0.37), 40)
 
-static func _signage(root: Node3D) -> void:
-	BuildUtils.label(root, "PORT VESPER CUSTOMS — Facilitating Trade",
-		Vector3(-14, 6.2, -50), Color(1.0, 0.84, 0.37), 44)
-	BuildUtils.label(root, "HARBORMASTER'S ROUNDS: OFFICE → WAREHOUSE → PIER",
-		Vector3(-14, 5.2, -50), Color(0.5, 0.83, 1.0), 30)
+static func _build_side_fences(root: Node3D) -> void:
+	# West (x=-100) and east (x=105) world edges, z[-60,25]. The water
+	# bounds the south; these close the east and west.
+	BuildUtils.box(root, Vector3(-100, FENCE_H * 0.5, -17.5),
+		Vector3(FENCE_T, FENCE_H, 85), BuildUtils.WALL_DARK)
+	BuildUtils.box(root, Vector3(105, FENCE_H * 0.5, -17.5),
+		Vector3(FENCE_T, FENCE_H, 85), BuildUtils.WALL_DARK)
+
+static func _build_staging(root: Node3D) -> void:	# Spawn staging: a concrete blast wall between the spawn pad and the
+	# gate guards' sightlines. Spawn at (0,0,-74); the wall (x[-3,3]) blocks
+	# every guard-post ray to the spawn point.
+	BuildUtils.box(root, Vector3(0, 1.1, -69), Vector3(6.0, 2.2, 0.6),
+		BuildUtils.CONCRETE)
+	BuildUtils.label(root, "STAGING", Vector3(0, 2.9, -69), Color(0.62, 0.64, 0.68), 40)
+	# Spawn pad marker.
+	BuildUtils.box(root, Vector3(0, 0.03, -74), Vector3(4.0, 0.06, 4.0),
+		Color(0.20, 0.24, 0.20))
+
+static func _build_van(game: GrayboxGame, root: Node3D) -> void:
+	# Guarded north extraction: the van waits outside the gate at (0,0,-64).
+	var body_c := Color(0.16, 0.17, 0.20)
+	BuildUtils.box(root, Vector3(0, 1.15, -64), Vector3(2.2, 2.3, 5.2), body_c)
+	BuildUtils.box(root, Vector3(0, 0.75, -61.0), Vector3(2.0, 1.1, 1.4),
+		Color(0.10, 0.12, 0.16))
+	for wx in [-1.0, 1.0]:
+		for wz in [-65.8, -62.4]:
+			BuildUtils.box(root, Vector3(wx, 0.35, wz), Vector3(0.3, 0.7, 0.7),
+				Color(0.05, 0.05, 0.06))
+	BuildUtils.label(root, "EXTRACTION — VAN", Vector3(0, 3.2, -64), Color(0.35, 1.0, 0.45), 36)
+	BuildUtils.zone(root, game, "van", Vector3(0, 0, -64), 4.0)

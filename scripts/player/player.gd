@@ -25,6 +25,9 @@ var verbs: Dictionary = {}
 var alive: bool = true
 var mana: float = 0.0
 var max_mana: float = 0.0
+## Physical keys carried (KeyData ids). Doors listing "key:<id>" open for
+## this player as an alternate gate — fast, silent, free.
+var keys: Array[String] = []
 
 ## While > 0, the kit owns velocity and normal movement input is skipped.
 ## Used by the Wizard's dash.
@@ -127,6 +130,13 @@ func spend_mana(amount: float) -> bool:
 
 func has_verb(verb: String) -> bool:
 	return bool(verbs.get(verb, false))
+
+func has_key(id: String) -> bool:
+	return keys.has(id)
+
+func add_key(id: String) -> void:
+	if not keys.has(id):
+		keys.append(id)
 
 func aim_dir() -> Vector3:
 	return -camera.global_transform.basis.z

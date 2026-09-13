@@ -28,7 +28,7 @@ static func all() -> Dictionary:
 			},
 			"bolt": {
 				"damage": 70.0,
-				"range": 80.0,
+				"range": 30.0,            # just under guard vision (34m)
 				"mana": 35.0,
 				"charge_time": 1.0,       # seconds of RMB hold for a full charge
 				"min_charge": 0.25,       # below this the release fizzles

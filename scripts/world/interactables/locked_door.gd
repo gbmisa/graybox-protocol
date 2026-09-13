@@ -16,11 +16,14 @@ const COSTS := {
 }
 
 ## Build a cost table from a list of verbs, e.g. ["lockpick", "smash"].
+## Key verbs ("key:<id>") open fast, silent, and free — the key is the cost.
 static func standard_methods(verbs: Array) -> Dictionary:
 	var out: Dictionary = {}
 	for v in verbs:
 		if COSTS.has(v):
 			out[v] = COSTS[v].duplicate()
+		elif String(v).begins_with("key:"):
+			out[v] = {"time": 1.0, "noise": 0.0, "mana": 0.0}
 	return out
 
 static func create(game: GrayboxGame, parent: Node3D, display: String,

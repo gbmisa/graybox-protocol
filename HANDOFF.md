@@ -118,62 +118,77 @@ All three converge on the mezzanine at y=6, then take their own door into the bo
 
 ---
 
-## Level — PORT VESPER (fork only)
+## Level — PORT VESPER (fork only, redesigned 2026-09-13)
 
 Target: **THE HARBORMASTER**. He patrols three stations *inside* the customs office and never
-leaves it — his route crosses no gated doors, so it can never wedge itself on one. The
-signage says `HARBORMASTER'S ROUNDS: OFFICE → WAREHOUSE → PIER`; the fiction is that he
-walks the whole dockyard, the collision truth is that he stays where the gates work.
+leaves it — his route crosses no gated doors, so it can never wedge itself on one.
+
+**Layout:** a long east-west waterfront (x[-110,110], z[-80,25]), not a square. Water is the
+southern boundary (no south fence). Four districts:
+- **West:** container terminal with the Wizard's dash line
+- **Center:** customs office (x[-16,16], z[-30,-14]), 3.0m walls, roof skylight
+- **East:** pier, dock office, moored vessel, boat extraction
+- **Far east:** dead crane zone (CRANE 2 — OUT OF SERVICE SINCE 2019, visibly dilapidated)
 
 ```
-  z   58    PIER         boat extraction (south, over water)
-  z   45    SOUTH FENCE  open pier walkway · PIER GATE [lockpick] (Regular's shortcut)
-  z   20    EAST FENCE   drainage culvert: 1.0m crawl UNDER the fence (Regular in/out)
-  z [-30,-14] OFFICE    customs office, 3.0m walls; E door [lockpick],
-                        W door [smash], roof skylight [arcane]; target inside
-  z [-18,12] WAREHOUSE  x [-60,-24]; corrugated west wall [smash] (Chad in)
-  z [-50,-19] YARD      containers; Wizard's dash line at x = 28
-  z  -50    NORTH FENCE open gateway (guarded); van extraction outside
-  (0,0,-62) SPAWN       north of the fence
+  x -100..-25   TERMINAL     container maze; dash line (P1→P2→office roof)
+  x -16..16     OFFICE       customs office; E door [lockpick], W door [smash],
+                             roof skylight [arcane]; target inside
+  x 40..65      PIER         dock office, pier deck, PIER GATE [lockpick/key],
+                             moored vessel, boat extraction
+  x 80..100     CRANE        dead crane zone, storage key, Harbormaster's routine
+  z -80..-60    NORTH        fence, spawn (0,0,-74) behind blast wall, van extraction
+  x 70          CULVERT      1.0m crawl pipe under north fence (Regular's vector)
+  z 25+         WATER        southern boundary, no fence
 ```
 
-Dockyard footprint x [-60, 60], z [-50, 45]; water along the south edge (opaque plane over
-a -0.8m seabed — falling in is wet feet, not a soft-lock). Night: moonlight is the only
-global light, every interior and the yard carry their own lamps.
+Spawn (0,0,-74) is behind a blast wall that blocks every guard post's sightline (verified
+by raycast in smoketest2: 24 waypoints checked, none see the spawn within 34m).
 
 ### The three routes (physically distinct vectors, no shared corridor)
 
 | | REGULAR | WIZARD | CHAD |
 |---|---|---|---|
-| Entry | East drainage culvert — 1.0m crawl under the fence | North fence ramp → container tops (3.6m) | CORRUGATED WEST WALL `[smash]` (the wall *is* the perimeter) |
-| Middle | Container yard, 2 impound lockers `[lockpick]` (flavor intel) | Two 7m dash gaps over grouped guards (Meteor bait) | Warehouse interior; east personnel door (open) |
-| Into the office | EAST SERVICE DOOR `[lockpick]` | 7m dash west onto the roof → WARD SKYLIGHT `[arcane]` | REINFORCED WEST DOOR `[smash]` |
-| Character | Quiet and slow | 60 HP in the open, falling hurts | Loud by design |
+| Entry | East culvert — 1.0m crawl under north fence at x=70 | Terminal ramp → P1 (3.6m) → dash 9.0m → P2 → dash 9.0m → office roof | Warehouse west wall BREACH [smash] at (-96,-27) |
+| Middle | Cross pier district, pick east office door | Warded skylight [arcane] into office | Through warehouse, smash west office door |
+| Character | Quiet and slow | 60 HP, no cover, all tempo | Loud by design; 60m noise pulls guards |
 
 The vectors enter the office from three different sides (east door, roof skylight, west
-door). The office interior — where the target patrols — is the only shared space.
+door) and do not converge before the office. The office interior — where the target
+patrols — is the only shared space.
 
-**Wizard dash-line physics that the geometry depends on:** the dash is perfectly
-horizontal (`velocity.y = 0`, gravity suspended for the 0.35s) at 26 m/s = 9.1m. Every
-platform top is 3.6m; the office east wall is 3.0m so the final dash clears it by 0.6m;
-the skylight sits 4m off the dash axis so the flight never clips the seal. A running jump
-(6.6m) cannot cross the 7m gaps; the dash crosses with margin.
+**Wizard dash-line physics:** the dash is perfectly horizontal (gravity suspended for
+0.35s) at 26 m/s = 9.1m. Both gaps are 9.0m: unjumpable (max jump ~4.7m empirically) and
+dashable (verified physically). Platform tops and office roof are all at 3.6m; the office
+walls are 3.0m so the dash clears them.
 
-**Chad's consequence is spatial, not scripted:** the breach lands at (-60, 0, -3) with
-60 noise, inside the radius of both warehouse guards and one yard guard. Their patrols
-run through the east-personnel-door corridor — so his way *out* of the warehouse is
-hotter than his way in. No alarm system was added; the routes do the work.
+**Chad's consequence is spatial:** the breach at (-96,-27) emits 60m noise, alerting both
+warehouse guards and terminal guards. Their patrols cross his exit corridor.
+
+**New systems (level-agnostic, data-driven):**
+- **IntelPickup:** 4 optional notes (routine, manifest12c, complaint, seized) with title/body
+  reading panel. Manifest 12-C is explicitly "OPTIONAL INTEL — flavor only."
+- **KeyItem:** pier_key (dock office → pier gate), storage_key (crane zone → storage compound).
+  Doors accept `key:<id>` as alternate methods. Minimal KEYS: HUD display.
+- **One-way locks:** office doors/skylight exit freely from inside (0-time free exit);
+  exterior entry remains gated.
+
+**Bolt tuning:** Wizard's charged bolt range is 30m, just below guard vision (34m).
 
 ### Extractions
-- **Boat** (south pier) — all operatives.
-- **Van** (north gate checkpoint, 2 guards posted) — all operatives.
-- **Drainage outflow** (1.0m crawl) — so **Chad can never use it**.
+- **Boat** (east pier deck, all operatives)
+- **Van** (north gate, guarded, all operatives)
+- **Drainage outflow** (1.0m crawl at x=70 — **Chad can never use it**)
 
 ### Required signage
-`PORT VESPER CUSTOMS — Facilitating Trade` · `IMPOUND LOT: your boat is our boat now` ·
-`DASH CAMERAS IN OPERATION (they are not)` · `HARBORMASTER'S ROUNDS: OFFICE → WAREHOUSE → PIER`
+`PORT VESPER — CUSTOMS IMPOUND` · `CRANE 2 — OUT OF SERVICE SINCE 2019` ·
+`DRAINAGE — KEEP CLEAR` · `DASH >` (terminal chevrons)
 
 **Authoritative floor plan:** the header comment in `scripts/world/level2/level2_builder.gd`.
+
+**Blind completion time:** unmeasured estimate only. The 5–8 minute target requires the
+F1–F4 friction systems (randomized target/intel, alarm consequences, second leg,
+bodyguards/fleeing target) which are not yet implemented.
 
 ---
 
@@ -296,14 +311,16 @@ exists on every route and crawl gaps measure exactly 1.0m; regression tests conf
 including a learned one — there is no progression or replayability value yet. This is by
 design pending the friction-and-pacing pass (see Next Steps).
 
-**Automated (tools/smoketest2.gd, fork only)** — every script parses; PORT VESPER builds;
-all three operatives spawn with correct HP, verbs and crouch heights at the level spawn; a
-raycast sweep of 24 waypoints confirms floor exists on every route and both culvert
-stations measure exactly 1.0m; all three extraction zones exist; the Harbormaster's three
-patrol waypoints are valid; 11 guards posted; the culvert is sealed from above at the
-fence line; the dash gaps measure 6.9m with a clear flight corridor and the final dash
-clears the 3.0m east wall; the select screen's two card rows and the PORT VESPER briefing
-fit the 1280×720 viewport. **0 problems.**
+**Automated (tools/smoketest2.gd, fork only)** — PORT VESPER builds; 21 floor/headroom
+points verified (culvert stations exactly 1.0m); 3 extraction zones; Harbormaster has 3
+patrol points; 12 guards posted; culvert sealed at fence line; dash gaps measure 8.9m and
+8.6m with clear corridor; 24 guard waypoints checked — none see the spawn within 34m;
+gate barrier spans continuous at multiple offsets; 4 intel + 2 keys with valid IDs;
+bolt range (30m) < guard vision (34m); briefing fits 720px. **0 problems.**
+
+**Physics-verified:** Wizard dash clears both 9.0m gaps (lands on P2 and office roof);
+jump-only reaches 4.7m (fails); Regular crawls the culvert (z -68 to -56); Chad (1.45m
+crouched) is blocked by the 1.0m pipe.
 
 ---
 
@@ -367,4 +384,4 @@ is source-only. `docs/PLAN-friction-and-pacing.md` is the design roadmap, commit
 - **Targets:** Linux (dev), Windows (export ready)
 - No external dependencies, no plugins, no asset imports.
 
-**Last updated:** 2026-09-13 (Level 2 fork: PORT VESPER + mission select)
+**Last updated:** 2026-09-13 (Level 2 redesign: east-west waterfront, 3 routes, intel/keys, 12 guards)

@@ -25,7 +25,7 @@ extends RefCounted
 
 const WH := 3.0  # wall height — must stay below the Wizard's 3.6m dash line
 
-static func build(root: Node3D, game: GrayboxGame) -> void:
+static func build(game: GrayboxGame, root: Node3D) -> void:
 	var w := BuildUtils.WALL
 	var x0 := -16.0
 	var x1 := 16.0
@@ -60,13 +60,17 @@ static func build(root: Node3D, game: GrayboxGame) -> void:
 		2.0, 12.0)
 	BuildUtils.label(root, "CUSTOMS OFFICE — HARBORMASTER",
 		Vector3(0, 2.0, z0 + 0.4), Color(0.5, 0.83, 1.0), 30)
-	# The three gated entries.
-	LockedDoor.create(game, root, "EAST SERVICE DOOR",
+	# The three gated entries. All three open freely from the inside
+	# (exit_side): entry stays gated, nobody gets locked in.
+	var east_door := LockedDoor.create(game, root, "EAST SERVICE DOOR",
 		Vector3(x1, 1.5, -24), Vector3(0.6, 3, 3), ["lockpick"])
-	BreakableWall.create(game, root, "REINFORCED WEST DOOR",
+	east_door.exit_side = Vector3(-1, 0, 0)
+	var west_door := BreakableWall.create(game, root, "REINFORCED WEST DOOR",
 		Vector3(x0, 1.5, -24), Vector3(0.6, 3, 3))
-	WardedSeal.create(game, root, "WARD SKYLIGHT",
+	west_door.exit_side = Vector3(1, 0, 0)
+	var sky := WardedSeal.create(game, root, "WARD SKYLIGHT",
 		Vector3(13, 3.6, -20), Vector3(2, 0.6, 2))
+	sky.exit_side = Vector3(0, -1, 0)  # interior is below the seal
 	# Barred windows flanking the east door: see in, never enter.
 	for wz in [-21.5, -26.5]:
 		BuildUtils.box(root, Vector3(x1, 1.6, wz), Vector3(0.5, 2.0, 1.6),
