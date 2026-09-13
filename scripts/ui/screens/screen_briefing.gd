@@ -34,15 +34,17 @@ func refresh() -> void:
 	clear(center)
 	var v := column(10)
 	center.add_child(v)
+	var lvl := LevelData.get_level(game().selected_level)
 	var c := CharData.get_char(game().selected_char)
-	v.add_child(text("MISSION BRIEFING — %s" % c["name"], 32, GOLD))
-	v.add_child(wrapped(String(c["desc"]), 18, 760, INFO))
+	v.add_child(text("MISSION BRIEFING — %s" % lvl["name"], 32, GOLD))
+	v.add_child(wrapped(str(lvl["desc"]), 18, 760, INFO))
+	v.add_child(text("OPERATIVE: %s — %s" % [c["name"], c["role"]], 20, GOLD))
 	v.add_child(text("YOUR ROUTE", 20, GOLD))
-	v.add_child(wrapped(String(c["route"]), 17, 760, Color.WHITE))
+	v.add_child(wrapped(str(lvl["routes"][game().selected_char]), 17, 760,
+		Color.WHITE))
 	var lines: Array = CONTROLS.get(game().selected_char, CONTROLS["regular"])
 	v.add_child(text("\n".join(PackedStringArray(lines)), 15))
-	v.add_child(text("EXTRACTIONS: helipad (roof) · van (street) · sump outflow (crawl only)",
-		15, INFO))
+	v.add_child(text(str(lvl["extractions"]), 15, INFO))
 	_loadout(v)
 	v.add_child(button("DEPLOY", func() -> void:
 		screens.click()

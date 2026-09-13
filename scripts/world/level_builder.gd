@@ -28,7 +28,14 @@ extends RefCounted
 
 const PLAYER_SPAWN := Vector3(0, 0, 70)
 
+## Dispatches on game.selected_level: 1 builds MERIDIAN CAPITAL below,
+## 2 builds PORT VESPER. Level 1 is untouched by the fork.
 static func build(game: GrayboxGame) -> Dictionary:
+	if int(game.selected_level) == 2:
+		return Level2Builder.build(game)
+	return _build_level1(game)
+
+static func _build_level1(game: GrayboxGame) -> Dictionary:
 	var root := Node3D.new()
 	root.name = "Level"
 	game.add_child(root)

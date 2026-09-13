@@ -41,6 +41,11 @@ func select_char(id: String) -> void:
 	_transition(State.BRIEFING, false)
 	game.screens.show_briefing()
 
+func select_level(id: int) -> void:
+	game.selected_level = id
+	game.screens.click()
+	game.screens.show_select()
+
 func set_armor(id: String) -> void:
 	game.selected_armor = id
 	game.screens.click()

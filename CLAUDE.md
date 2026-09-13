@@ -3,6 +3,9 @@
 > Project instructions for AI assistants (Claude Code in VS Code, etc.) working on this repo.
 > The human (Gregory) is technical, terse, and the final judge. Keep answers short with key
 > reasons. Do the work; don't narrate the work.
+>
+> **FORK (2026-09-13):** this copy adds PORT VESPER, a second mission, plus the level-select
+> flow. No mechanics changed. MERIDIAN CAPITAL is untouched. Merge back when approved.
 
 ## What this is
 
@@ -40,7 +43,10 @@ back on its worst characters; consequences are ironic, not endorsing).
   - `core/` — `game.gd` (GrayboxGame: spawning + world events), `mission_flow.gd`
     (screen state machine), `input_actions.gd` (InputMap registration).
   - `data/` — all tuning, no behaviour: `characters.gd`, `armors.gd`, `abilities.gd`,
-    `guard_data.gd`, and `verbs.gd` (the traversal capability matrix).
+    `guard_data.gd`, `verbs.gd` (the traversal capability matrix), and `levels.gd`
+    (per-mission names, briefing copy, infiltrate/extraction lines, per-operative
+    route text — the select screen and briefing read it; operative cards re-label
+    when the level changes).
   - `player/` — `player.gd` is a thin root composing `movement.gd`, `look.gd`,
     `health.gd`, `mantle.gd`, `interactor.gd` and one kit.
     - `player/kits/` — **one file per operative**: `kit_regular.gd`, `kit_wizard.gd`,
@@ -48,11 +54,17 @@ back on its worst characters; consequences are ironic, not endorsing).
       one file. Do not split a moveset across files.
   - `enemies/` — `guard.gd` root composing `guard_senses.gd`, `guard_brain.gd`,
     `guard_combat.gd`, `guard_body.gd`; plus `target.gd` (VIP).
-  - `world/` — `level_builder.gd` (orchestrator + the full floor plan in its header),
-    `build_utils.gd` (box/label/plate/tunnel/stairs helpers), `guard_posts.gd`.
-    - `world/sections/` — one builder per area, each with a `build(root, game)`:
-      `sec_street`, `sec_tower`, `sec_undercroft`, `sec_courtyard`, `sec_dock`,
-      `sec_mezzanine`, `sec_boardroom`, `sec_roof`.
+  - `world/` — `level_builder.gd` (dispatches on `game.selected_level`; the full
+    floor plan of each level lives in its builder's header), `build_utils.gd`
+    (box/label/plate/tunnel/stairs helpers), `guard_posts.gd` (level 1 patrols).
+    - `world/sections/` — one builder per MERIDIAN CAPITAL area, each with a
+      `build(root, game)`: `sec_street`, `sec_tower`, `sec_undercroft`,
+      `sec_courtyard`, `sec_dock`, `sec_mezzanine`, `sec_boardroom`, `sec_roof`.
+    - `world/level2/` — PORT VESPER: `level2_builder.gd` (assembler + target
+      spawn) and `guard_posts2.gd`, plus `level2/sections/` with one builder per
+      area: `sec2_perimeter`, `sec2_yard`, `sec2_culvert`, `sec2_office`,
+      `sec2_warehouse`. Same patterns as `world/sections/` — copy one, don't
+      invent new ones.
     - `world/interactables/` — `interactable.gd` base plus `locked_door.gd`,
       `breakable_wall.gd`, `warded_seal.gd`.
   - `ui/` — `hud.gd` root composing `hud_vitals/abilities/feed/reticle/prompt.gd`
@@ -79,7 +91,9 @@ back on its worst characters; consequences are ironic, not endorsing).
    - STREET CLOTHES: damage taken x1.0, speed x1.0
    - LIGHT VEST: damage taken x0.65, speed x0.88
    - HEAVY PLATE: damage taken x0.35, speed x0.70
-3. **One level, MERIDIAN CAPITAL** — five floors: undercroft (-4), ground (0),
+3. **Two missions** (second added in this fork), picked on the select screen
+   (`game.selected_level`; `LevelData` holds the per-mission copy; `LevelBuilder`
+   dispatches). **MERIDIAN CAPITAL** — five floors: undercroft (-4), ground (0),
    mezzanine (6), boardroom (12), roof (18.6). Tower footprint x [-30, 30], z [-40, 10].
    The full floor plan lives in the `level_builder.gd` header — read it before moving
    any geometry. **Routes are mostly hard-gated**: each operative has their own way in,
@@ -90,6 +104,21 @@ back on its worst characters; consequences are ironic, not endorsing).
    Then three gated doors into the boardroom, one per operative. Three extractions:
    helipad (roof), van (street), sump outflow (**crawl-only**, so Chad cannot use it).
    Kill target → reach an extraction → win.
+   **PORT VESPER** (fork) — waterfront customs impound dockyard at night, x [-60, 60],
+   z [-50, 45]. Target: THE HARBORMASTER, patrolling three stations *inside* the customs
+   office (his route crosses no gated doors). Three physically separate vectors, one per
+   office side — no shared corridor:
+   - REGULAR: east drainage culvert (1.0m crawl under the fence) → container yard →
+     EAST SERVICE DOOR [lockpick]. Optional: two impound lockers [lockpick], pier
+     shortcut gate [lockpick] to the boat.
+   - WIZARD: north fence ramp → container tops (3.6m) → two 7m dash gaps over grouped
+     guards → 7m dash west onto the office roof → WARD SKYLIGHT [arcane], dropped
+     from directly above the interior.
+   - CHAD: CORRUGATED WEST WALL [smash] (the wall is the perimeter) → warehouse →
+     open east personnel door → REINFORCED WEST DOOR [smash]. The breach's 60 noise
+     pulls both warehouse guards and one yard guard onto his exit corridor.
+   Extractions: boat (south pier), van (north gate), drainage outflow (**crawl-only**,
+   so Chad cannot use it). Full floor plan in `world/level2/level2_builder.gd` header.
 4. **Gating is enforced two different ways, and the distinction matters:**
    - *Interaction gates* (lockpick / arcane / smash) are checked in script. An
      `Interactable` lists which verbs open it and what each costs; omitting a verb is
@@ -123,7 +152,15 @@ back on its worst characters; consequences are ironic, not endorsing).
 - **A crawl gate is only as strong as the geometry around it.** The storm drain was a
   free-standing box with a 1.4m roof and a 1.84m jump walked straight over it. Every
   `BuildUtils.tunnel()` needs its surroundings sealed, and `tunnel()` builds no end caps —
-  add your own or the player walks out of the world.
+  add your own or the player walks out of the world. A crawl pipe passing *under* a fence
+  needs the fence solid above it: Port Vesper's culvert has a 1.4m notch with a lintel
+  over it, because the pipe's own 1.4m roof is jumpable.
+- **The Wizard's dash is perfectly horizontal and cannot be tuned around.** The kit sets
+  `velocity.y = 0` and `movement.gd` suspends gravity for the 0.35s duration: 26 m/s =
+  9.1m, flat. Dash lines must be level (every platform top at the same height), the
+  flight corridor must be clear above the line, and anything the dash has to cross must
+  sit below it. Port Vesper's office walls are 3.0m specifically so the 3.6m dash clears
+  them. Do not place a seal or gate ON the dash axis — put it beside the landing.
 - **Every enclosed space needs its own lamp.** There is no global illumination; an interior
   with no light in it is a black void. Use `BuildUtils.lamp()` / `lamps()`.
 - **Check for soft-locks.** Any space you can fall into needs a way out that the operatives
@@ -146,6 +183,10 @@ Shift sprint, but **dash for the wizard** · Space jump / mantle · ESC pause.
   It raycasts every waypoint on all three routes for floor and headroom, asserts the crawl
   gaps are 1.0m and sealed from above, and regression-tests guard vision, the freight-bay
   escape and no-regen. Add a case to it whenever you fix a bug of a kind it would have caught.
+- Port Vesper check (this fork): `godot --headless --path . --script res://tools/smoketest2.gd`
+  Mirrors the above for level 2: 24 waypoints, exact 1.0m crawl assertions, extraction
+  zones, the Harbormaster's waypoints, the 11 guards, the dash-line flight checks, kit
+  correctness for all three operatives, and select/briefing viewport fit.
 
 ## Exporting (do this FOR the user when asked — don't make him click through it)
 
@@ -162,7 +203,8 @@ Shift sprint, but **dash for the wizard** · Space jump / mantle · ESC pause.
   there, never in logic.
 - Keep guard AI dumb on purpose (see rule 4). Complexity budget goes to character kits
   and level routing.
-- New character = new data entry + select-screen card. New level = new scene + entries /
-  exits / target / extraction markers wired to the mission-state script.
+- New character = new data entry + select-screen card. New level = new section files
+  under `scripts/world/levelN/` + a `LevelData` entry + a dispatch arm in
+  `level_builder.gd` + a `tools/smoketestN.gd` mirroring the checks.
 - After structural changes, update the layout section of this file.
 - Verify with the headless import after every change that touches scripts.

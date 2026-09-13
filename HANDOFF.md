@@ -2,7 +2,12 @@
 
 **Status:** Playable prototype. Completes in under 60 seconds on all routes. **Known problem:**
 there is no friction, so a blind run is as fast as a mastered one. See `docs/PLAN-friction-and-pacing.md`
-for the roadmap. Codebase split into 49 single-purpose modules under 250 lines each.
+for the roadmap. Codebase split into 67 single-purpose modules under 250 lines each.
+
+> **FORK NOTE (2026-09-13):** this copy is a Level 2 fork. It adds **PORT VESPER**, a second
+> mission, plus the level-select flow — no mechanics changed. `MERIDIAN CAPITAL` is untouched
+> (Level 1 smoketest still passes with 0 problems). Merge back into the main repo when the
+> level is approved.
 
 ---
 
@@ -19,8 +24,9 @@ for the roadmap. Codebase split into 49 single-purpose modules under 250 lines e
 ## What This Is
 
 **Graybox Protocol** is a first-person immersive-sim prototype in the vein of Cruelty Squad
-and Dishonored. Three playable characters, one assassination target, three extraction points,
-one five-storey gray-boxed office tower.
+and Dishonored. Three playable characters, assassination targets, three extraction points per
+mission, and (in this fork) two gray-boxed missions: a five-storey office tower and a
+waterfront impound dockyard.
 
 - **Tone:** Dark satire (abrasive, politically charged on purpose)
 - **Mechanics:** Stealth, guns, magic, melee, traversal verbs, ability-based gameplay
@@ -112,6 +118,76 @@ All three converge on the mezzanine at y=6, then take their own door into the bo
 
 ---
 
+## Level — PORT VESPER (fork only)
+
+Target: **THE HARBORMASTER**. He patrols three stations *inside* the customs office and never
+leaves it — his route crosses no gated doors, so it can never wedge itself on one. The
+signage says `HARBORMASTER'S ROUNDS: OFFICE → WAREHOUSE → PIER`; the fiction is that he
+walks the whole dockyard, the collision truth is that he stays where the gates work.
+
+```
+  z   58    PIER         boat extraction (south, over water)
+  z   45    SOUTH FENCE  open pier walkway · PIER GATE [lockpick] (Regular's shortcut)
+  z   20    EAST FENCE   drainage culvert: 1.0m crawl UNDER the fence (Regular in/out)
+  z [-30,-14] OFFICE    customs office, 3.0m walls; E door [lockpick],
+                        W door [smash], roof skylight [arcane]; target inside
+  z [-18,12] WAREHOUSE  x [-60,-24]; corrugated west wall [smash] (Chad in)
+  z [-50,-19] YARD      containers; Wizard's dash line at x = 28
+  z  -50    NORTH FENCE open gateway (guarded); van extraction outside
+  (0,0,-62) SPAWN       north of the fence
+```
+
+Dockyard footprint x [-60, 60], z [-50, 45]; water along the south edge (opaque plane over
+a -0.8m seabed — falling in is wet feet, not a soft-lock). Night: moonlight is the only
+global light, every interior and the yard carry their own lamps.
+
+### The three routes (physically distinct vectors, no shared corridor)
+
+| | REGULAR | WIZARD | CHAD |
+|---|---|---|---|
+| Entry | East drainage culvert — 1.0m crawl under the fence | North fence ramp → container tops (3.6m) | CORRUGATED WEST WALL `[smash]` (the wall *is* the perimeter) |
+| Middle | Container yard, 2 impound lockers `[lockpick]` (flavor intel) | Two 7m dash gaps over grouped guards (Meteor bait) | Warehouse interior; east personnel door (open) |
+| Into the office | EAST SERVICE DOOR `[lockpick]` | 7m dash west onto the roof → WARD SKYLIGHT `[arcane]` | REINFORCED WEST DOOR `[smash]` |
+| Character | Quiet and slow | 60 HP in the open, falling hurts | Loud by design |
+
+The vectors enter the office from three different sides (east door, roof skylight, west
+door). The office interior — where the target patrols — is the only shared space.
+
+**Wizard dash-line physics that the geometry depends on:** the dash is perfectly
+horizontal (`velocity.y = 0`, gravity suspended for the 0.35s) at 26 m/s = 9.1m. Every
+platform top is 3.6m; the office east wall is 3.0m so the final dash clears it by 0.6m;
+the skylight sits 4m off the dash axis so the flight never clips the seal. A running jump
+(6.6m) cannot cross the 7m gaps; the dash crosses with margin.
+
+**Chad's consequence is spatial, not scripted:** the breach lands at (-60, 0, -3) with
+60 noise, inside the radius of both warehouse guards and one yard guard. Their patrols
+run through the east-personnel-door corridor — so his way *out* of the warehouse is
+hotter than his way in. No alarm system was added; the routes do the work.
+
+### Extractions
+- **Boat** (south pier) — all operatives.
+- **Van** (north gate checkpoint, 2 guards posted) — all operatives.
+- **Drainage outflow** (1.0m crawl) — so **Chad can never use it**.
+
+### Required signage
+`PORT VESPER CUSTOMS — Facilitating Trade` · `IMPOUND LOT: your boat is our boat now` ·
+`DASH CAMERAS IN OPERATION (they are not)` · `HARBORMASTER'S ROUNDS: OFFICE → WAREHOUSE → PIER`
+
+**Authoritative floor plan:** the header comment in `scripts/world/level2/level2_builder.gd`.
+
+---
+
+## Mission select (level + operative) — fork only
+
+`game.selected_level`: 1 = MERIDIAN CAPITAL, 2 = PORT VESPER (default 1). The select
+screen shows operative cards plus a second row of level cards (`LevelData`); clicking a
+level card re-labels the operative cards with that level's routes and highlights the pick.
+Briefing shows the selected level's name, briefing copy, per-operative route and
+extraction line. `LevelBuilder.build()` dispatches on `selected_level` — Level 1 goes
+through the original code path unchanged.
+
+---
+
 ## How the gating works
 
 Two mechanisms, and the difference is important if you edit the level:
@@ -145,15 +221,19 @@ graybox-protocol/
 ├── CLAUDE.md, ASSETS.md, HANDOFF.md
 ├── scenes/main.tscn              # root node + GrayboxGame script only
 ├── build/                        # exported Linux binary + .pck
-└── scripts/                      # 49 files, none over 250 lines
+├── tools/                        # smoketest.gd (L1) · smoketest2.gd (L2)
+└── scripts/                      # 67 files, none over 250 lines
     ├── core/       game.gd · mission_flow.gd · input_actions.gd
-    ├── data/       characters · armors · abilities · guard_data · verbs
+    ├── data/       characters · armors · abilities · guard_data · verbs · levels
     ├── player/     player.gd + movement · look · health · mantle · interactor
     │   └── kits/   kit_regular · kit_wizard · kit_chad  (one file per operative)
     ├── enemies/    guard.gd + senses · brain · combat · body · target.gd
-    ├── world/      level_builder · build_utils · guard_posts
-    │   ├── sections/       one builder per area (street, tower, undercroft, …)
-    │   └── interactables/  interactable base + locked_door · breakable_wall · warded_seal
+    ├── world/      level_builder.gd (dispatches on game.selected_level)
+    │   ├── sections/   sec_* — MERIDIAN CAPITAL areas
+    │   ├── level2/     level2_builder.gd · guard_posts2.gd
+    │   │   └── sections/ sec2_perimeter · sec2_yard · sec2_culvert ·
+    │   │                 sec2_office · sec2_warehouse
+    │   └── interactables/ locked_door · breakable_wall · warded_seal
     ├── ui/         hud.gd + 5 panels · screens/ (router + one file per screen)
     └── fx/         audio_synth · projectile · meteor
 ```
@@ -165,9 +245,10 @@ graybox-protocol/
 | Retune any number | `scripts/data/` — no balance value lives in logic |
 | Change an operative's moveset | one file in `scripts/player/kits/` |
 | Change who gets through what | `scripts/data/verbs.gd` |
-| Change one area's geometry | one file in `scripts/world/sections/` |
+| Change one area's geometry | one file in `scripts/world/sections/` (L1) or `scripts/world/level2/sections/` (L2) |
 | Change how doors behave | `scripts/world/interactables/` |
-| Move a patrol | `scripts/world/guard_posts.gd` |
+| Move a patrol | `scripts/world/guard_posts.gd` (L1) · `scripts/world/level2/guard_posts2.gd` (L2) |
+| Add a level | new `scripts/world/levelN/` section files + `LevelData` entry + dispatch in `level_builder.gd` |
 
 ---
 
@@ -215,6 +296,15 @@ exists on every route and crawl gaps measure exactly 1.0m; regression tests conf
 including a learned one — there is no progression or replayability value yet. This is by
 design pending the friction-and-pacing pass (see Next Steps).
 
+**Automated (tools/smoketest2.gd, fork only)** — every script parses; PORT VESPER builds;
+all three operatives spawn with correct HP, verbs and crouch heights at the level spawn; a
+raycast sweep of 24 waypoints confirms floor exists on every route and both culvert
+stations measure exactly 1.0m; all three extraction zones exist; the Harbormaster's three
+patrol waypoints are valid; 11 guards posted; the culvert is sealed from above at the
+fence line; the dash gaps measure 6.9m with a clear flight corridor and the final dash
+clears the 3.0m east wall; the select screen's two card rows and the PORT VESPER briefing
+fit the 1280×720 viewport. **0 problems.**
+
 ---
 
 ## Known Issues / Quirks
@@ -260,7 +350,7 @@ Target: 5–8 min blind, 60–90 s mastered. F2 is the spine and should be built
 - Guard chatter and player barks — the satire currently lives only in signage and card copy
 - Visual polish — particles on Meteor, decals on breaches
 - Skill trees — the data layer is ready; bind them to `characters.gd`
-- Second level — `world/sections/` structure lets a new level be new section files + entry point
+- ~~Second level~~ — done in this fork (PORT VESPER); merge decision pending
 
 ---
 
@@ -277,4 +367,4 @@ is source-only. `docs/PLAN-friction-and-pacing.md` is the design roadmap, commit
 - **Targets:** Linux (dev), Windows (export ready)
 - No external dependencies, no plugins, no asset imports.
 
-**Last updated:** 2026-09-12
+**Last updated:** 2026-09-13 (Level 2 fork: PORT VESPER + mission select)

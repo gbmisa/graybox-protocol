@@ -12,6 +12,8 @@ var screens: Screens
 
 var selected_char: String = "regular"
 var selected_armor: String = "none"
+## 1 = MERIDIAN CAPITAL, 2 = PORT VESPER.
+var selected_level: int = 1
 
 var player: Player = null
 var guards: Array = []
@@ -61,7 +63,7 @@ func spawn_mission() -> void:
 	hud.setup(self, player)
 	hud.visible = true
 	hud.set_objective("ASSASSINATE THE TARGET")
-	hud.show_message("INFILTRATE MERIDIAN CAPITAL", 3.0)
+	hud.show_message(str(LevelData.get_level(selected_level)["infiltrate"]), 3.0)
 
 func _spawn_player(spawn: Vector3) -> void:
 	player = Player.new()
@@ -143,6 +145,9 @@ func show_select() -> void:
 
 func select_char(id: String) -> void:
 	flow.select_char(id)
+
+func select_level(id: int) -> void:
+	flow.select_level(id)
 
 func set_armor(id: String) -> void:
 	flow.set_armor(id)
