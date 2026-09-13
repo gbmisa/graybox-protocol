@@ -55,7 +55,7 @@ func spawn_mission() -> void:
 	clear_mission()
 	var data := LevelBuilder.build(self)
 	level_root = data["level_root"] as Node3D
-	_spawn_player(data["player_spawn"] as Vector3)
+	_spawn_player(_resolve_spawn(data))
 	_spawn_guards(data["guard_posts"] as Array)
 	stats = {"kills": 0, "alarms": 0}
 	mission_start_msec = Time.get_ticks_msec()
@@ -65,11 +65,21 @@ func spawn_mission() -> void:
 	hud.set_objective("ASSASSINATE THE TARGET")
 	hud.show_message(str(LevelData.get_level(selected_level)["infiltrate"]), 3.0)
 
-func _spawn_player(spawn: Vector3) -> void:
+## Per-operative spawns: {"pos": Vector3, "yaw": float}. Falls back to the
+## legacy single player_spawn (yaw 0) when a level does not define them.
+## Yaw 0 faces -z; every spawn faces its vector so the player never starts
+## staring at a wall.
+func _resolve_spawn(data: Dictionary) -> Dictionary:
+	var fallback := {"pos": data["player_spawn"] as Vector3, "yaw": 0.0}
+	var per: Dictionary = data.get("player_spawns", {})
+	return per.get(selected_char, fallback)
+
+func _spawn_player(spawn: Dictionary) -> void:
 	player = Player.new()
 	level_root.add_child(player)
 	player.setup(selected_char, ArmorData.get_armor(selected_armor), self)
-	player.position = spawn
+	player.position = spawn["pos"] as Vector3
+	player.rotation.y = float(spawn["yaw"])
 	player.died.connect(_on_player_died)
 
 func _spawn_guards(posts: Array) -> void:

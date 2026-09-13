@@ -9,7 +9,7 @@ static func stats() -> Dictionary:
 		# --- senses ---
 		"vision_range": 34.0,
 		"vision_cone": 0.80,        # dot threshold, ~37 degree half-angle
-		"detect_rate": 1.4,         # detection meter gain/sec when visible
+		"detect_rate": 2.0,         # detection meter gain/sec when visible
 		"crouch_mul": 0.45,         # gain multiplier while player crouches
 		"sprint_mul": 1.6,          # gain multiplier while player sprints
 		"lose_rate": 0.5,           # meter decay/sec when player is unseen

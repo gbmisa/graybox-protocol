@@ -25,10 +25,12 @@ extends RefCounted
 ##   REGULAR  east culvert (1.0m crawl) -> pier district -> EAST SERVICE
 ##            DOOR [lockpick] -> office interior
 ##
-##   WIZARD   terminal ramp -> P1 (3.6m) -> 9.5m dash -> P2 (3.6m)
-##            -> 9.5m dash east onto office roof (clearing the 3.0m west wall)
-##            -> WARD SKYLIGHT [arcane] at (13, -20), off the dash axis
-##            -> drop into office interior
+##   WIZARD   terminal ramp -> P1 (3.6m) -> 5.5m dash -> P2 (3.6m, 13m
+##            generous landing) -> 5.5m dash east onto office roof
+##            (clearing the 3.0m west wall) -> WARD SKYLIGHT [arcane]
+##            at (13, -20), off the dash axis -> drop into office interior
+##            (a corridor guard patrols under the dash line and lane guards
+##            flank the office — the roof crossing is timed, not free)
 ##
 ##   CHAD     WAREHOUSE WEST WALL [smash] -> crate maze -> east personnel
 ##            door (open) -> terminal -> REINFORCED WEST DOOR [smash]
@@ -40,10 +42,31 @@ extends RefCounted
 ## EXTRACTIONS  boat (pier deck, all) · van (north gate, guarded, all) ·
 ##              drainage outflow (1.0m crawl, so Chad can never use it)
 ##
-## SPAWN        (0,0,-74) north staging, behind a blast wall that blocks
-##              every guard post's sightline (verified in smoketest2).
+## SPAWNS       one staging pad per operative, each facing its vector and
+##              25m+ from every guard post:
+##              REGULAR (58,0,-70) -> culvert · WIZARD (-66,0,-70) -> ramp
+##              CHAD (-84,0,-70) -> warehouse
+
+## SPAWNS       one staging pad per operative, each facing its vector and
+##              at least 25m from every guard post (verified in smoketest2):
+##              REGULAR (58,-70) faces the culvert; WIZARD (-66,-70) faces
+##              the terminal ramp; CHAD (-84,-70) faces the warehouse.
 
 const PLAYER_SPAWN := Vector3(0, 0, -74)
+
+static func _yaw_to(from: Vector3, look: Vector3) -> float:
+	var d := look - from
+	return atan2(-d.x, -d.z)
+
+static func player_spawns() -> Dictionary:
+	return {
+		"regular": {"pos": Vector3(58, 0, -70),
+			"yaw": _yaw_to(Vector3(58, 0, -70), Vector3(70, 0, -60))},
+		"wizard": {"pos": Vector3(-66, 0, -70),
+			"yaw": _yaw_to(Vector3(-66, 0, -70), Vector3(-58, 0, -40))},
+		"chad": {"pos": Vector3(-84, 0, -70),
+			"yaw": _yaw_to(Vector3(-84, 0, -70), Vector3(-96, 0, -40))},
+	}
 
 static func build(game: GrayboxGame) -> Dictionary:
 	var root := Node3D.new()
@@ -60,6 +83,7 @@ static func build(game: GrayboxGame) -> Dictionary:
 	return {
 		"level_root": root,
 		"player_spawn": PLAYER_SPAWN,
+		"player_spawns": player_spawns(),
 		"guard_posts": GuardPosts2.all(),
 	}
 

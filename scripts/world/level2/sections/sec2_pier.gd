@@ -4,9 +4,10 @@ extends RefCounted
 ## x[45,60], z[5,45] overhanging the water.
 ##
 ## The PIER GATE [lockpick | key:pier_key] seals the deck at its root (z=5).
-## The fence runs x[40,65] so the gate can't be walked around on land;
-## railings (1.1m) on the water sides stop wading up onto the deck.
-## The dock office holds the pier key and a complaint note (optional intel).
+## The fence runs x[28,72] with side fences reaching the water at both ends,
+## so the deck cannot be walked around on land; railings (1.1m) on the water
+## sides stop wading up onto the deck. The dock office holds the pier key
+## and a complaint note (optional intel), both on the desk.
 
 static func build(game: GrayboxGame, root: Node3D) -> void:
 	_build_dock_office(game, root)
@@ -27,9 +28,11 @@ static func _build_dock_office(game: GrayboxGame, root: Node3D) -> void:
 	BuildUtils.box(root, Vector3(55, 3.2, -15), Vector3(6.4, 0.4, 5.4),
 		Color(0.26, 0.28, 0.32))
 	BuildUtils.label(root, "DOCK OFFICE", Vector3(55, 4.0, -15), Color(0.62, 0.64, 0.68), 32)
-	# The pier key + a dockworker's complaint (optional intel).
-	KeyItem.create(game, root, "pier_key", Vector3(54, 0, -16))
-	IntelPickup.create(game, root, "complaint", Vector3(56.5, 0, -14))
+	# Desk with the pier key and a dockworker's complaint (optional intel).
+	BuildUtils.box(root, Vector3(55, 0.45, -15), Vector3(2.4, 0.9, 1.2),
+		Color(0.42, 0.32, 0.20))
+	KeyItem.create(game, root, "pier_key", Vector3(54.2, 0.9, -15))
+	IntelPickup.create(game, root, "complaint", Vector3(55.8, 0.9, -15))
 
 static func _build_pier_deck(game: GrayboxGame, root: Node3D) -> void:
 	# Deck plate x[45,60], z[5,45], top at y=0. Piles down into the water.
@@ -39,23 +42,29 @@ static func _build_pier_deck(game: GrayboxGame, root: Node3D) -> void:
 		for pz in [10.0, 25.0, 40.0]:
 			BuildUtils.box(root, Vector3(px, -1.0, pz), Vector3(0.5, 2.0, 0.5),
 				BuildUtils.PIPE)
-	# The gate fence: z=5, x[40,65], 3m tall. Gate [lockpick | key:pier_key].
+	# The gate fence: z=5, x[28,72], 3m tall. Gate [lockpick | key:pier_key].
+	# The barrier is continuous: side fences run south from both ends into
+	# the water (z=25), so the deck cannot be walked around on land.
 	var fence_c := Color(0.25, 0.27, 0.30)
-	for seg in [[40.0, 50.5], [53.5, 65.0]]:
+	for seg in [[28.0, 50.5], [53.5, 72.0]]:
 		var x0: float = seg[0]
 		var x1: float = seg[1]
 		BuildUtils.box(root, Vector3((x0 + x1) * 0.5, 1.5, 5),
 			Vector3(x1 - x0, 3.0, 0.25), fence_c)
+	for fx in [28.0, 72.0]:
+		BuildUtils.box(root, Vector3(fx, 1.5, 15),
+			Vector3(0.25, 3.0, 20), fence_c)
 	var gate := LockedDoor.create(game, root, "PIER GATE",
 		Vector3(52, 1.5, 5), Vector3(3.0, 3.0, 0.3),
 		["lockpick", "key:pier_key"])
 	gate.exit_side = Vector3(0, 0, 1)  # free exit from the deck side
 	BuildUtils.label(root, "PIER GATE — LOCKPICK OR KEY", Vector3(52, 3.8, 5), Color(0.35, 0.70, 1.00), 30)
-	# Railings on the water sides: 1.1m, so the deck can't be mantled
-	# from the water (0.8m step + 1.1m rail > 1.2m mantle).
+	# Railings on the water sides: 1.1m, full deck length (z[5,45]), so the
+	# deck can't be mantled from the water (0.8m step + 1.1m rail > 1.2m
+	# mantle) and the sides can't be swum around the fence ends.
 	var rail_c := Color(0.50, 0.52, 0.55)
-	BuildUtils.box(root, Vector3(45, 0.55, 35), Vector3(0.15, 1.1, 20), rail_c)
-	BuildUtils.box(root, Vector3(60, 0.55, 35), Vector3(0.15, 1.1, 20), rail_c)
+	BuildUtils.box(root, Vector3(45, 0.55, 25), Vector3(0.15, 1.1, 40), rail_c)
+	BuildUtils.box(root, Vector3(60, 0.55, 25), Vector3(0.15, 1.1, 40), rail_c)
 	BuildUtils.box(root, Vector3(52.5, 0.55, 45), Vector3(15, 1.1, 0.15), rail_c)
 	# Deck lamps.
 	BuildUtils.lamp(root, Vector3(47, 4.5, 15), BuildUtils.LAMP_SERVICE)

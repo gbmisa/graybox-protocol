@@ -30,7 +30,13 @@ func build(root: Control) -> void:
 	_body = make_label("", 15)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(480, 0)
-	vbox.add_child(_body)
+	# The scroll box bounds the panel: long notes scroll instead of
+	# pushing the card off a 720px viewport.
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(500, 300)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.add_child(_body)
+	vbox.add_child(scroll)
 	var hint := make_label("CLOSE [F]", 12, DIM, HORIZONTAL_ALIGNMENT_CENTER)
 	vbox.add_child(hint)
 	_panel.visible = false

@@ -5,14 +5,12 @@ extends RefCounted
 ## CRANE 2 is visibly dilapidated — the geometry sells the gag, not the sign:
 ## a leaning tower, a jib collapsed nose-down, a snapped cable dangling to
 ## the dirt, a cracked counterweight, rust tones, and a debris field. The
-## storage key sits on a crate here (guarded); the Harbormaster's routine
-## note is pinned to another crate (optional intel).
+## storage key sits by a crate here (guarded).
 
 static func build(game: GrayboxGame, root: Node3D) -> void:
 	_build_crane(root)
 	_build_debris(root)
 	KeyItem.create(game, root, "storage_key", Vector3(88, 0, 8))
-	IntelPickup.create(game, root, "routine", Vector3(84, 0, -6))
 	BuildUtils.label(root, "CRANE 2 — OUT OF SERVICE SINCE 2019",
 		Vector3(88, 3.4, 2.5), Color(1.0, 0.45, 0.25), 40)
 	BuildUtils.label(root, "FAR EAST — DEAD CRANE", Vector3(90, 7.0, -18), Color(1.0, 0.84, 0.37), 44)

@@ -3,8 +3,8 @@ extends RefCounted
 ## Container terminal (west district): x[-100,-25], z[-60,25].
 ##
 ## A container maze with real lanes and cover, the Wizard's dash line to the
-## office roof, and a key-gated storage compound (south) that shortcuts the
-## crossing to the pier district.
+## office roof, and a key-locked storage building (south) holding the
+## Harbormaster's routine — the key buys knowledge, never a required step.
 ##
 ## Dash line (axis z=-26, all tops at 3.6):
 ##   ramp  (-58,0,-26) -> (-46,3.6,-26)   walkable approach
@@ -22,6 +22,7 @@ static func build(game: GrayboxGame, root: Node3D) -> void:
 	_build_maze(root)
 	_build_dash_line(root)
 	_build_storage_compound(game, root)
+	_build_cover(root)
 	BuildUtils.label(root, "TERMINAL 7 — CONTAINERS", Vector3(-70, 6.5, -40), Color(1.0, 0.84, 0.37), 48)
 
 static func _container(root: Node3D, pos: Vector3, size: Vector3,
@@ -60,13 +61,15 @@ static func _build_dash_line(root: Node3D) -> void:
 	# Walkable ramp: 12m run, 3.6m rise, 3m wide, heading east onto P1.
 	BuildUtils.ramp(root, Vector3(-58, 0, DASH_Z), Vector3(1, 0, 0),
 		12.0, DASH_TOP, 3.0, plat)
-	# P1 and P2: 1.2m thick slabs, tops at 3.6.
+	# P1 (6m) and P2 (13m, generous): 1.2m thick slabs, tops at 3.6.
+	# Gaps are 5.5m — just beyond the 4.74m jump range, so the 9.1m dash
+	# is required but the landing is huge: no precision braking.
 	BuildUtils.box(root, Vector3(-43, DASH_TOP - 0.6, DASH_Z),
 		Vector3(6.0, 1.2, 10.0), plat)
 	BuildUtils.box(root, Vector3(-28, DASH_TOP - 0.6, DASH_Z),
-		Vector3(6.0, 1.2, 10.0), plat)
+		Vector3(13.0, 1.2, 10.0), plat)
 	# Legs so the platforms don't float.
-	for px in [-45.0, -41.0]:
+	for px in [-45.0, -41.0, -33.0, -29.0, -25.0, -22.0]:
 		BuildUtils.box(root, Vector3(px, 1.2, DASH_Z), Vector3(0.6, 2.4, 0.6),
 			BuildUtils.PIPE)
 	for px in [-30.0, -26.0]:
@@ -77,24 +80,55 @@ static func _build_dash_line(root: Node3D) -> void:
 	BuildUtils.label(root, "DASH >", Vector3(-28, DASH_TOP + 0.8, DASH_Z), Color(0.72, 0.40, 1.0), 40)
 
 static func _build_storage_compound(game: GrayboxGame, root: Node3D) -> void:
-	# Chain-link fence x=-40, z[-8,20], 3m tall. The gate (key or nothing)
-	# is the direct crossing; without it you walk around either end.
-	var fence_c := Color(0.25, 0.27, 0.30)
-	for seg in [[-8.0, 4.5], [7.5, 20.0]]:
-		var z0: float = seg[0]
-		var z1: float = seg[1]
-		BuildUtils.box(root, Vector3(-40, 1.5, (z0 + z1) * 0.5),
-			Vector3(0.25, 3.0, z1 - z0), fence_c)
-	# Fence posts.
-	for pz in [-8.0, 4.5, 7.5, 20.0]:
-		BuildUtils.box(root, Vector3(-40, 1.5, pz), Vector3(0.4, 3.0, 0.4),
-			BuildUtils.PIPE)
-	# The key gate itself.
-	var gate := LockedDoor.create(game, root, "STORAGE GATE",
-		Vector3(-40, 1.5, 6.0), Vector3(0.3, 3.0, 3.0), ["key:storage_key"])
-	gate.exit_side = Vector3(1, 0, 0)  # free exit eastward (toward the pier)
-	BuildUtils.label(root, "STORAGE — KEY REQUIRED", Vector3(-40, 3.8, 6.0), Color(0.85, 0.65, 0.25), 32)
-	# The reward inside: the seized-goods manifest (optional intel).
-	IntelPickup.create(game, root, "manifest12c", Vector3(-36, 0, 6.0))
-	BuildUtils.box(root, Vector3(-36, 0.5, 8.5), Vector3(2.0, 1.0, 2.0),
-		Color(0.40, 0.30, 0.18))
+	# A REAL building: x[-46,-34], z[-6,18], 3m walls, roof slab, ONE
+	# key-locked door on the north wall. Flood-fill verified: with the door
+	# closed the interior is unreachable from the exterior.
+	# Inside: the Harbormaster's routine (optional intel, on a desk) — the
+	# key buys knowledge of the target's patrol, never a required step.
+	var c := Color(0.36, 0.34, 0.30)
+	var x0 := -46.0
+	var x1 := -34.0
+	var z0 := -6.0
+	var z1 := 18.0
+	var t := 0.5
+	var wh := 3.0
+	# South, east, west walls: solid runs.
+	BuildUtils.box(root, Vector3(-40, wh * 0.5, z1),
+		Vector3(12 + t, wh, t), c)
+	BuildUtils.box(root, Vector3(x0, wh * 0.5, 6),
+		Vector3(t, wh, 24 + t), c)
+	BuildUtils.box(root, Vector3(x1, wh * 0.5, 6),
+		Vector3(t, wh, 24 + t), c)
+	# North wall split around the 3m key door at x [-41.5, -38.5].
+	BuildUtils.box(root, Vector3(-43.75, wh * 0.5, z0),
+		Vector3(4.5, wh, t), c)
+	BuildUtils.box(root, Vector3(-36.25, wh * 0.5, z0),
+		Vector3(4.5, wh, t), c)
+	# Roof slab.
+	BuildUtils.box(root, Vector3(-40, wh + 0.3, 6),
+		Vector3(12 + t, 0.6, 24 + t), c)
+	var gate := LockedDoor.create(game, root, "STORAGE DOOR",
+		Vector3(-40, 1.5, z0), Vector3(3.0, 3.0, 0.6), ["key:storage_key"])
+	gate.exit_side = Vector3(0, 0, 1)  # free exit from inside
+	BuildUtils.label(root, "STORAGE — KEY REQUIRED",
+		Vector3(-40, 3.8, z0), Color(0.85, 0.65, 0.25), 32)
+	# Interior: desk with the routine note, crates, a lamp.
+	BuildUtils.box(root, Vector3(-40, 0.45, 6),
+		Vector3(2.2, 0.9, 1.1), Color(0.42, 0.32, 0.20))
+	IntelPickup.create(game, root, "routine", Vector3(-40, 0.9, 6))
+	for cp in [Vector3(-44, 0.5, 12), Vector3(-36.5, 0.5, 12),
+			Vector3(-44, 0.5, 2), Vector3(-37, 0.5, 14)]:
+		BuildUtils.box(root, cp, Vector3(2.0, 1.0, 2.0),
+			Color(0.40, 0.30, 0.18))
+	BuildUtils.lamp(root, Vector3(-40, 2.6, 6), BuildUtils.LAMP_SERVICE)
+
+static func _build_cover(root: Node3D) -> void:
+	# Low cover on the two ground lanes the vectors actually walk: the
+	# Regular's east approach and Chad's lane to the west door. Kept off
+	# guard patrol lines and out of the dash flight corridor.
+	var crate := Color(0.44, 0.32, 0.20)
+	for cp in [Vector3(55, 1.0, -22), Vector3(45, 1.0, -28),
+			Vector3(35, 1.0, -20), Vector3(28, 1.0, -27),
+			Vector3(-50, 1.0, -20), Vector3(-40, 1.0, -29),
+			Vector3(-27, 1.0, -19)]:
+		BuildUtils.box(root, cp, Vector3(2.0, 2.0, 2.0), crate)

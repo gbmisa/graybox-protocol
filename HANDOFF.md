@@ -384,4 +384,28 @@ is source-only. `docs/PLAN-friction-and-pacing.md` is the design roadmap, commit
 - **Targets:** Linux (dev), Windows (export ready)
 - No external dependencies, no plugins, no asset imports.
 
-**Last updated:** 2026-09-13 (Level 2 redesign: east-west waterfront, 3 routes, intel/keys, 12 guards)
+**Last updated:** 2026-09-13 (PORT VESPER fix pass: per-op spawns, 5.5m dash gaps, keyed storage, pier seal, intel prop fix, detection 0.87s, 3 bot playthroughs WIN, 15 guards)
+
+---
+
+## PORT VESPER fix pass — 2026-09-13 (post-judgment)
+
+Gregory's judgment: spawn faced away/too near guards, dash too long, route was door→ramp→roof with no decisions, keys irrelevant, intel UI overflowed, detection too slow, manifest floated, storage/pier walkarounds. All addressed:
+
+- **Per-operative spawns:** Regular (58,-70) faces culvert, Wizard (-66,-70) faces ramp, Chad (-84,-70) faces warehouse. All ≥25m from guards (raycast verified).
+- **Wizard dash geometry:** two 5.5m gaps (P1 6m wide, P2 13m wide). Beyond 4.74m jump range, no precision braking. Dash mechanics untouched (0.35s, 26 m/s).
+- **Guard pressure:** 15 guards (was 12); patrols under dash corridor and both office lanes.
+- **Storage:** real keyed building (x[-46,-34], z[-6,18]), one 3m north entrance requiring storage_key, free exit. Key buys Harbormaster routine intel.
+- **Pier:** gate fence x[28,72] at z=5, side fences z[5,25], full-length railings. Walkaround fixed.
+- **Intel props:** datapads now rest on surfaces (was floating 0.85m). Seized/manifest on warehouse crates, routine on storage desk, complaint on dock-office desk.
+- **Intel UI:** scrollable, fits 1280×720.
+- **Detection:** 2.0/s → alert in 0.87s at 14m standing exposed (was ~1.4s).
+
+**Validation (headless, all 0 problems):**
+- Clean import: 0 errors
+- Level 1 smoketest: 0 problems
+- Level 2 smoketest: 0 problems (floor, zones, seals, spawns, dash line, intel, UI)
+- Flood (BFS enclosure): office/storage/pier sealed with doors closed, reachable via gates only
+- Bot playthroughs: Regular WIN 8.4s (dmg 22, alarms 3), Wizard WIN 6.5s (dmg 0, alarms 2), Chad WIN 3.7s (dmg 0, alarms 2). All used real gates, dashes, weapons, extractions.
+
+**Known:** push to origin/port-vesper blocked (no GitHub credentials in build env); commit c2b328d ready locally.

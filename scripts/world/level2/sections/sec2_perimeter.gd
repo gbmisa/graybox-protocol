@@ -69,15 +69,15 @@ static func _build_side_fences(root: Node3D) -> void:
 	BuildUtils.box(root, Vector3(105, FENCE_H * 0.5, -17.5),
 		Vector3(FENCE_T, FENCE_H, 85), BuildUtils.WALL_DARK)
 
-static func _build_staging(root: Node3D) -> void:	# Spawn staging: a concrete blast wall between the spawn pad and the
-	# gate guards' sightlines. Spawn at (0,0,-74); the wall (x[-3,3]) blocks
-	# every guard-post ray to the spawn point.
-	BuildUtils.box(root, Vector3(0, 1.1, -69), Vector3(6.0, 2.2, 0.6),
-		BuildUtils.CONCRETE)
-	BuildUtils.label(root, "STAGING", Vector3(0, 2.9, -69), Color(0.62, 0.64, 0.68), 40)
-	# Spawn pad marker.
-	BuildUtils.box(root, Vector3(0, 0.03, -74), Vector3(4.0, 0.06, 4.0),
-		Color(0.20, 0.24, 0.20))
+static func _build_staging(root: Node3D) -> void:
+	# One staging pad per operative, each facing its vector. No blast wall:
+	# every pad is 25m+ from the nearest guard post by placement.
+	for spot in [Vector3(58, 0, -70), Vector3(-66, 0, -70),
+			Vector3(-84, 0, -70)]:
+		BuildUtils.box(root, Vector3(spot.x, 0.03, spot.z),
+			Vector3(4.0, 0.06, 4.0), Color(0.20, 0.24, 0.20))
+	BuildUtils.label(root, "STAGING", Vector3(-72, 2.9, -70),
+		Color(0.62, 0.64, 0.68), 40)
 
 static func _build_van(game: GrayboxGame, root: Node3D) -> void:
 	# Guarded north extraction: the van waits outside the gate at (0,0,-64).

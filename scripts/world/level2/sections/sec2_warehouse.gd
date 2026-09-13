@@ -18,7 +18,9 @@ const WALL_T := 0.5
 static func build(game: GrayboxGame, root: Node3D) -> void:
 	_build_walls(game, root)
 	_build_crate_maze(root)
-	IntelPickup.create(game, root, "seized", Vector3(-80, 0, -20))
+	# Both notes sit on crate tops (2.0m), never floating.
+	IntelPickup.create(game, root, "seized", Vector3(-82, 2.0, -22))
+	IntelPickup.create(game, root, "manifest12c", Vector3(-78, 2.0, -34))
 	BuildUtils.label(root, "IMPOUND WAREHOUSE", Vector3(-80, 5.0, -27), Color(1.0, 0.84, 0.37), 48)
 	BuildUtils.lamp(root, Vector3(-80, 5.5, -27), BuildUtils.LAMP_SERVICE)
 

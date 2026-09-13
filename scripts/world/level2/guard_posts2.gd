@@ -2,11 +2,13 @@ class_name GuardPosts2
 extends RefCounted
 ## Patrol routes for PORT VESPER, grouped by district.
 ##
-## 12 guards. The warehouse pair is authored for Chad's consequence: his
+## 15 guards. The warehouse pair is authored for Chad's consequence: his
 ## breach lands at (-96, 0, -27) with 60 noise, both guards investigate the
 ## breach, and their patrol routes run through the east-personnel-door
 ## corridor — so his way out of the warehouse is hotter than his way in.
-## No new systems; the consequence is spatial.
+## No new systems; the consequence is spatial. The corridor/lane guards give
+## the Wizard's dash line its timing beat and the Regular's east approach
+## its final decision.
 
 static func all() -> Array:
 	var posts: Array = []
@@ -16,6 +18,7 @@ static func all() -> Array:
 	posts.append_array(_gate())
 	posts.append_array(_pier())
 	posts.append_array(_crane())
+	posts.append_array(_dash_threat())
 	return posts
 
 ## Container terminal (west), y = 0. Three patrols working the container
@@ -64,4 +67,16 @@ static func _pier() -> Array:
 static func _crane() -> Array:
 	return [
 		{"waypoints": [Vector3(84, 0, 4), Vector3(92, 0, -4)]},
+	]
+
+## The Wizard's timing beat, y = 0. One patrols the clear corridor UNDER the
+## dash line (the ramp climb and any fall happen in its sightline); two work
+## the lanes flanking the office, so the roof crossing has to be timed
+## between passes. The east one doubles as the Regular's final decision
+## before the east service door.
+static func _dash_threat() -> Array:
+	return [
+		{"waypoints": [Vector3(-54, 0, -22), Vector3(-30, 0, -22)]},
+		{"waypoints": [Vector3(-20, 0, -32), Vector3(-20, 0, -12)]},
+		{"waypoints": [Vector3(20, 0, -32), Vector3(20, 0, -12)]},
 	]
