@@ -31,6 +31,9 @@ static func get_sfx(sfx_name: String) -> AudioStreamWAV:
 			s = _tone(220.0, 110.0, 0.20, "saw", 0.4)
 		"alarm":
 			s = _sequence([660.0, 880.0, 660.0, 880.0], 0.12, "square", 0.3)
+		"klaxon":
+			s = _sequence([520.0, 392.0, 520.0, 392.0, 520.0, 392.0],
+				0.22, "saw", 0.4)
 		"win":
 			s = _sequence([523.0, 659.0, 784.0, 1046.0], 0.13, "sine", 0.4)
 		"lose":

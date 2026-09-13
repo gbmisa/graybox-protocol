@@ -86,7 +86,7 @@ func _explode() -> void:
 	var pos := global_position
 	for g in game.guards.duplicate():
 		if g.alive and g.global_position.distance_to(pos) <= aoe_radius:
-			g.take_damage(damage, pos)
+			g.take_damage(damage, pos, 35.0)
 	if game.target != null and game.target.alive \
 			and game.target.global_position.distance_to(pos) <= aoe_radius:
 		game.target.take_damage(damage, pos)

@@ -23,6 +23,7 @@ func tick(player: Player, delta: float) -> void:
 		guard.detect = minf(1.0, guard.detect + _rate(player, dist, gs) * delta)
 	else:
 		guard.detect = maxf(0.0, guard.detect - float(gs["lose_rate"]) * delta)
+	_check_corpses(gs)
 	_escalate()
 
 func _can_see(player: Player, to_p: Vector3, dist: float, gs: Dictionary) -> bool:
@@ -46,6 +47,35 @@ func _rate(player: Player, dist: float, gs: Dictionary) -> float:
 	if player.movement.is_sprinting:
 		rate *= float(gs["sprint_mul"])
 	return rate
+
+## A guard that walks a patrol past an unreported body goes ALERT and the
+## alarm jumps. Reported once, globally — the first spotter raises it.
+func _check_corpses(gs: Dictionary) -> void:
+	if guard.state == Guard.State.ALERT:
+		return
+	var tree := guard.get_tree()
+	if tree == null:
+		return
+	for n in tree.get_nodes_in_group("corpses"):
+		var c := n as CorpseMarker
+		if c == null or c.reported:
+			continue
+		var to: Vector3 = c.global_position - guard.global_position
+		var dist := Vector3(to.x, 0.0, to.z).length()
+		if dist >= float(gs["vision_range"]):
+			continue
+		var forward := -guard.global_transform.basis.z
+		if forward.dot(to.normalized()) <= float(gs["vision_cone"]):
+			continue
+		var from := guard.global_position + Vector3(0, 1.6, 0)
+		var low := c.global_position + Vector3(0, 0.3, 0)
+		if not guard.ray(from, low, []).is_empty():
+			continue
+		c.reported = true
+		guard.last_seen = c.global_position
+		guard.enter_alert()
+		guard.game.on_corpse_found()
+		return
 
 func _escalate() -> void:
 	if guard.detect >= 1.0 and guard.state != Guard.State.ALERT:

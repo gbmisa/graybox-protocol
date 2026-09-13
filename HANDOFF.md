@@ -409,3 +409,59 @@ Gregory's judgment: spawn faced away/too near guards, dash too long, route was d
 - Bot playthroughs: Regular WIN 8.4s (dmg 22, alarms 3), Wizard WIN 6.5s (dmg 0, alarms 2), Chad WIN 3.7s (dmg 0, alarms 2). All used real gates, dashes, weapons, extractions.
 
 **Known:** push to origin/port-vesper blocked (no GitHub credentials in build env); commit c2b328d ready locally.
+
+---
+
+## Consequence systems (2026-09-13, Phase 1 of the systems-first rebuild)
+
+**Problem:** the designer cleared 15 guards in 3 minutes — going loud cost nothing. This pass
+adds the consequence spine: a global alarm, lockdown, guard lethality, corpse discovery, and
+safe rooms. Operative mechanics untouched (dash, verbs, HP, movement all as-was).
+
+### Mechanics
+- **Global alarm 0–100** (`scripts/core/alarm_director.gd`, numbers in
+  `scripts/data/consequence_data.gd`). Rises on: loud noise events (noise radius × 0.25, only
+  at/above noise 20 — lockpick 0, dash 4, punch 8, arcane door 12 stay quiet; pistol 25,
+  slam 30, breach 45–60, meteor 45 do not), guard entering ALERT (+10), body discovered
+  (+15), loud guard kill (+10, killing blow's noise ≥ 20: pistol/fireball/bolt/slam/meteor;
+  punch kills are quiet but leave a corpse). Decays −2/s after 10s with no alarm event
+  (ticks in `_physics_process` for deterministic headless tests).
+- **Lockdown at 100** (one-way): klaxon SFX + HUD banner
+  ("LOCKDOWN — The Harbormaster has relocated under guard.", per-level target name), target
+  teleports to the level's safe room and holds a short pace there **for the rest of the
+  mission** (alarm decay never un-relocates), 2 bodyguards post on tight patrols at the safe
+  room, 4 reinforcements spawn at map-edge posts and join patrols.
+- **Guard lethality** (data only, `scripts/data/guard_data.gd`): damage 22 → 28, cooldown
+  1.1 → 1.0, spread 0.06 → 0.05. Aim telegraph (0.55s) unchanged — pressuring, not instant.
+- **Corpse discovery**: dead guards leave a persistent dark marker (`CorpseMarker`, group
+  `corpses`); a patrolling guard with range/cone/LOS on an unreported body goes ALERT and
+  the alarm jumps +15 (+10 more for the alert). Reported once globally.
+- **ALERT callout**: an alerting guard pulls living guards within 25m straight to ALERT;
+  called-out guards do not re-broadcast (no whole-map chain).
+- **Safe rooms** (`scripts/data/safe_rooms.gd`, `get_safe_room(level_id)`): L2 (10,0,-28),
+  NE corner of the customs office interior, clear of the Harbormaster's stations; L1
+  (24,12,-27), east end of the boardroom floor. Physical hardened-room geometry deferred to
+  the Phase 2 level rebuild — data + relocation logic work now.
+- **Briefing** teaches it (both levels): "Loud kills raise the alarm. A full alarm means
+  lockdown — the target relocates under guard." Briefing column separation 10 → 8 to keep
+  the wizard briefing at 701px (limit 720).
+- **HUD**: compact ALARM meter under the detection meter (green→red; label flips to
+  LOCKDOWN, red, once tripped).
+
+### Test results (headless, Godot 4.7.2)
+- `godot --headless --path . --import`: 0 errors.
+- `tools/smoketest.gd` (L1): 0 problems. `tools/smoketest2.gd` (L2): 0 problems.
+- `tools/alarm_test.gd` (new, permanent suite member): 0 problems —
+  (a) alarm→100 relocates target to (10,0,-28), spawns 2 bodyguards + 4 reinforcements
+  (20 guards total after 1 test kill), HUD notice shown;
+  (b) 50 → 40.0 over 5 quiet seconds;
+  (c) loud kill +10 exactly;
+  (d) corpse sighting → ALERT, alarm +35 (body 15 + alert 10);
+  (e) after full decay (alarm 0) the target is still at the safe room;
+  safe-room data sane for both levels; briefing line present.
+
+### Cut / deferred
+- Physical safe-room geometry (walls, single door): deferred to the Phase 2 level rebuild
+  per the brief — relocation uses open interior positions for now.
+- No per-guard "search pattern" beyond the existing investigate→scan→patrol; convergence
+  on loud noise already existed via `hear_noise`.

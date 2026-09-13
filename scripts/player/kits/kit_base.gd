@@ -41,14 +41,16 @@ func _hitscan(max_dist: float, spread_rad: float = 0.0) -> Dictionary:
 	q.exclude = [player.get_rid()]
 	return player.get_world_3d().direct_space_state.intersect_ray(q)
 
-func _damage_hit(hit: Dictionary, dmg: float) -> void:
+## `noise` is the noise radius of the damaging ability; a guard killed by a
+## loud blow counts as a loud kill for the alarm (see ConsequenceData).
+func _damage_hit(hit: Dictionary, dmg: float, noise: float = 0.0) -> void:
 	if hit.is_empty():
 		return
 	var col := hit["collider"] as Node
 	if col == null:
 		return
 	if col.is_in_group("guards"):
-		(col as Guard).take_damage(dmg, player.global_position)
+		(col as Guard).take_damage(dmg, player.global_position, noise)
 	elif col.is_in_group("target"):
 		(col as Target).take_damage(dmg, player.global_position)
 	else:

@@ -65,7 +65,7 @@ func _detonate() -> void:
 	for g in game.guards.duplicate():
 		var gd := g as Guard
 		if gd != null and gd.alive and gd.global_position.distance_to(pos) <= aoe:
-			gd.take_damage(float(cfg["damage"]), pos)
+			gd.take_damage(float(cfg["damage"]), pos, float(cfg["noise"]))
 			gd.apply_knockback(
 				(gd.global_position - pos).normalized() * 8.0 + Vector3(0, 3.0, 0))
 	if game.target != null and game.target.alive \
@@ -110,7 +110,7 @@ func _tick_burn(delta: float) -> void:
 	for g in game.guards.duplicate():
 		var gd := g as Guard
 		if gd != null and gd.alive and gd.global_position.distance_to(pos) <= radius:
-			gd.take_damage(dmg, pos)
+			gd.take_damage(dmg, pos, float(cfg["noise"]))
 	if game.target != null and game.target.alive \
 			and game.target.global_position.distance_to(pos) <= radius:
 		game.target.take_damage(dmg, pos)

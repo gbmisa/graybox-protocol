@@ -36,7 +36,7 @@ func _punch() -> void:
 	for t in _melee_targets(float(a["range"])):
 		var dir: Vector3 = ((t as Node3D).global_position
 			- player.global_position).normalized()
-		_hit_entity(t, float(a["damage"]),
+		_hit_entity(t, float(a["damage"]), float(a["noise"]),
 			dir * float(a["knockback"]) + Vector3(0, float(a["knockup"]), 0))
 
 func _slam() -> void:
@@ -55,18 +55,18 @@ func _slam() -> void:
 			continue
 		var to: Vector3 = gd.global_position - player.global_position
 		if to.length() <= radius:
-			_hit_entity(gd, float(a["damage"]),
+			_hit_entity(gd, float(a["damage"]), float(a["noise"]),
 				to.normalized() * float(a["knockback"])
 				+ Vector3(0, float(a["knockup"]), 0))
 	var t := player.game.target
 	if t != null and t.alive \
 			and t.global_position.distance_to(player.global_position) <= radius:
-		_hit_entity(t, float(a["damage"]), Vector3.ZERO)
+		_hit_entity(t, float(a["damage"]), 0.0, Vector3.ZERO)
 
-func _hit_entity(entity: Node, dmg: float, impulse: Vector3) -> void:
+func _hit_entity(entity: Node, dmg: float, noise: float, impulse: Vector3) -> void:
 	if entity is Guard:
 		var g := entity as Guard
-		g.take_damage(dmg, player.global_position)
+		g.take_damage(dmg, player.global_position, noise)
 		if impulse != Vector3.ZERO:
 			g.apply_knockback(impulse)
 	elif entity is Target:

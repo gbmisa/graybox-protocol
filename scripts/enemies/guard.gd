@@ -26,6 +26,10 @@ var waypoints: Array = []
 var last_seen: Vector3 = Vector3.ZERO
 var investigate_pos: Vector3 = Vector3.ZERO
 var knockback_vel: Vector3 = Vector3.ZERO
+## Noise radius of the blow that is currently hurting this guard. Read at
+## death: a kill counts as loud when this meets the consequence data's
+## loud_kill_noise threshold.
+var kill_noise: float = 0.0
 
 var body: GuardBody
 var senses: GuardSenses
@@ -73,10 +77,11 @@ func hear_noise(pos: Vector3) -> void:
 		return
 	enter_suspicious(pos, maxf(detect, 0.5))
 
-func take_damage(dmg: float, from_pos: Vector3) -> void:
+func take_damage(dmg: float, from_pos: Vector3, noise: float = 0.0) -> void:
 	if not alive:
 		return
 	hp -= dmg
+	kill_noise = noise
 	body.flash_hit()
 	if hp <= 0.0:
 		_die()
@@ -91,12 +96,20 @@ func apply_knockback(impulse: Vector3) -> void:
 	knockback_vel += impulse
 
 # ------------------------------------------------------- state transitions ---
-func enter_alert() -> void:
+## `propagate` lets the alarm director's callout skip the re-broadcast, so a
+## called-out guard joins the ALERT without chain-alerting the whole map.
+func enter_alert(propagate: bool = true) -> void:
+	if not alive:
+		return
 	state = State.ALERT
 	brain.on_enter_alert()
 	body.set_indicator("!", Color.RED)
-	game.alarm()
+	game.on_guard_alerted(self, propagate)
 	AudioSynth.play(self, "alarm")
+
+## True when the killing blow came from a loud ability (see consequence data).
+func loud_kill() -> bool:
+	return kill_noise >= float(ConsequenceData.alarm()["loud_kill_noise"])
 
 func enter_suspicious(pos: Vector3, meter: float) -> void:
 	state = State.SUSPICIOUS

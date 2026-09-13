@@ -7,6 +7,8 @@ extends CharacterBody3D
 var alive: bool = true
 var hp: float = 100.0
 var game: GrayboxGame = null
+## Set by relocate_to during lockdown. One-way: nothing ever un-relocates.
+var relocated: bool = false
 
 var patrol_points: Array = []
 var wp_index: int = 0
@@ -117,6 +119,18 @@ func _update_patrol(delta: float) -> void:
 
 
 # ---------------------------------------------------------------- damage
+
+## Lockdown: abandon the patrol route and hold the safe room on a short
+## two-point pace. Teleport, not a walk — a cross-map stroll would wedge on
+## geometry and read as a bug, not a retreat.
+func relocate_to(pos: Vector3) -> void:
+	if not alive:
+		return
+	relocated = true
+	position = pos
+	patrol_points = [pos + Vector3(-2, 0, 0), pos + Vector3(2, 0, 0)]
+	wp_index = 0
+	velocity = Vector3.ZERO
 
 func take_damage(dmg: float, from_pos: Vector3) -> void:
 	if not alive:

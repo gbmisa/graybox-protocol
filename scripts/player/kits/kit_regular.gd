@@ -20,7 +20,8 @@ func _fire_pistol() -> void:
 	pistol_cd = float(a["cooldown"])
 	AudioSynth.play(player.game, "pistol")
 	player.game.emit_noise(player.global_position, float(a["noise"]))
-	_damage_hit(_hitscan(float(a["range"])), float(a["damage"]))
+	_damage_hit(_hitscan(float(a["range"])), float(a["damage"]),
+		float(a["noise"]))
 
 func hud_lines() -> Array:
 	return [

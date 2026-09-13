@@ -16,13 +16,15 @@ static func stats() -> Dictionary:
 		"hearing_range": 30.0,
 
 		# --- gun ---
-		# Lethal on purpose: with no health regeneration a mission is a single
-		# life, so armour choice is the difference between surviving 3 hits and
-		# 9. Tuned against the aim telegraph in guard_combat — a shot you cannot
-		# see coming at this damage would just be unfair.
-		"gun_damage": 22.0,
-		"gun_cooldown": 1.1,
-		"gun_spread": 0.06,         # radians
+		# Pressuring on purpose: with no health regeneration a mission is a
+		# single life, so armour choice is the difference between surviving
+		# 3 hits and 9. Tuned against the aim telegraph in guard_combat — a
+		# shot you cannot see coming at this damage would just be unfair.
+		# Consequence pass: damage and accuracy raised moderately (data, not
+		# aimbot behaviour). An alerted building should hurt, not execute.
+		"gun_damage": 28.0,
+		"gun_cooldown": 1.0,
+		"gun_spread": 0.05,         # radians
 		"gun_range": 40.0,
 		"aim_time": 0.55,           # visible wind-up before firing; the dodge window
 

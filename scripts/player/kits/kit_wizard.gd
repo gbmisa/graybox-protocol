@@ -64,7 +64,8 @@ func _release_bolt(a: Dictionary) -> void:
 		return
 	AudioSynth.play(player.game, "bolt")
 	player.game.emit_noise(player.global_position, float(a["noise"]))
-	_damage_hit(_hitscan(float(a["range"])), float(a["damage"]))
+	_damage_hit(_hitscan(float(a["range"])), float(a["damage"]),
+		float(a["noise"]))
 
 # --------------------------------------------------------------- meteor ---
 func _cast_meteor() -> void:

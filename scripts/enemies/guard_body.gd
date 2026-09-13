@@ -97,6 +97,8 @@ func flash_hit() -> void:
 
 func play_death() -> void:
 	set_indicator("", Color.YELLOW)
+	# The body tips over and fades; the marker stays for patrols to find.
+	CorpseMarker.spawn(guard.get_parent(), guard.global_position)
 	var tw := guard.create_tween()
 	tw.tween_property(guard, "rotation:x", -PI / 2.0, 0.4)
 	tw.tween_interval(1.5)

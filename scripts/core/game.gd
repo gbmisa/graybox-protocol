@@ -19,6 +19,8 @@ var player: Player = null
 var guards: Array = []
 var target: Target = null
 var level_root: Node3D = null
+## The consequence spine: global alarm, lockdown, decay. Fresh per mission.
+var director: AlarmDirector = null
 
 var objective_stage: int = 1      # 1 = assassinate, 2 = extract
 var stats: Dictionary = {"kills": 0, "alarms": 0}
@@ -49,6 +51,9 @@ func clear_mission() -> void:
 	player = null
 	guards = []
 	target = null
+	if director != null and is_instance_valid(director):
+		director.queue_free()
+	director = null
 	hud.visible = false
 
 func spawn_mission() -> void:
@@ -57,6 +62,9 @@ func spawn_mission() -> void:
 	level_root = data["level_root"] as Node3D
 	_spawn_player(_resolve_spawn(data))
 	_spawn_guards(data["guard_posts"] as Array)
+	director = AlarmDirector.new()
+	add_child(director)
+	director.setup(self)
 	stats = {"kills": 0, "alarms": 0}
 	mission_start_msec = Time.get_ticks_msec()
 	objective_stage = 1
@@ -96,10 +104,15 @@ func get_player() -> Player:
 	return player
 
 # ----------------------------------------------------------------- events ---
-## Anything loud. Guards inside the radius investigate the source.
+## Anything loud. Guards inside the radius investigate the source; noise at
+## or above the consequence threshold also feeds the global alarm, scaled by
+## the radius. Quiet verbs stay quiet.
 func emit_noise(pos: Vector3, radius: float) -> void:
 	if not is_playing():
 		return
+	var cd := ConsequenceData.alarm()
+	if radius >= float(cd["noise_alarm_threshold"]) and director != null:
+		director.raise_alarm(radius * float(cd["noise_alarm_scale"]))
 	for g in guards:
 		var gd := g as Guard
 		if gd != null and gd.alive and gd.global_position.distance_to(pos) <= radius:
@@ -109,16 +122,40 @@ func shake_camera(amount: float) -> void:
 	if player != null and player.alive:
 		player.add_shake(amount)
 
-func alarm() -> void:
+## A guard confirmed the player (or a body). Bumps the alarm; nearby guards
+## within the callout radius join the ALERT — but called-out guards do not
+## re-broadcast, so one sighting cannot chain-alert the whole map.
+func on_guard_alerted(g: Guard, propagate: bool = true) -> void:
 	if not is_playing():
 		return
 	stats["alarms"] = int(stats["alarms"]) + 1
 	hud.add_killfeed("ALARM — guards alerted")
+	if director != null:
+		director.raise_alarm(float(ConsequenceData.alarm()["alert_bump"]))
+	if not propagate:
+		return
+	var radius := float(ConsequenceData.alarm()["callout_radius"])
+	for o in guards:
+		var gd := o as Guard
+		if gd != null and gd != g and gd.alive \
+				and gd.state != Guard.State.ALERT \
+				and gd.global_position.distance_to(g.global_position) <= radius:
+			gd.enter_alert(false)
+
+## A patrol walked past a body. Louder than a sighting: somebody died here.
+func on_corpse_found() -> void:
+	if not is_playing():
+		return
+	hud.add_killfeed("Body discovered")
+	if director != null:
+		director.raise_alarm(float(ConsequenceData.alarm()["corpse_bump"]))
 
 func on_guard_killed(g: Guard) -> void:
 	stats["kills"] = int(stats["kills"]) + 1
 	guards.erase(g)
 	hud.add_killfeed("Guard eliminated")
+	if g.loud_kill() and director != null:
+		director.raise_alarm(float(ConsequenceData.alarm()["loud_kill_bump"]))
 
 func on_target_killed() -> void:
 	if not is_playing():
