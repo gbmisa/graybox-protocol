@@ -1,0 +1,10 @@
+# Godot generated — rebuilt on import, never edit or commit by hand
+.godot/
+
+# Exported builds. The Linux binary alone is 73MB; rebuild it with the export
+# command in HANDOFF.md rather than versioning it.
+build/
+
+# OS noise
+.DS_Store
+Thumbs.db

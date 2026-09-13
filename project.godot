@@ -1,0 +1,25 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all that obvious.
+
+config_version=5
+
+[application]
+
+config/name="Graybox Protocol"
+config/description="First-person immersive-sim prototype: three operatives, a gray-boxed compound, one assassination, two extractions."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7")
+boot_splash/bg_color=Color(0.04, 0.05, 0.08, 1)
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/mode=0
+window/size/borderless=true
+window/size/resizable=true
+
+[physics]
+
+3d/default_gravity=9.8
