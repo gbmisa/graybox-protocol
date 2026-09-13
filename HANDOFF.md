@@ -1,7 +1,8 @@
 # Graybox Protocol — Handoff Document
 
-**Status:** Playable prototype. Level 2 (MERIDIAN CAPITAL) with three hard-gated routes,
-traversal verbs, and a rebuilt Wizard kit. Codebase split into 49 single-purpose modules.
+**Status:** Playable prototype. Completes in under 60 seconds on all routes. **Known problem:**
+there is no friction, so a blind run is as fast as a mastered one. See `docs/PLAN-friction-and-pacing.md`
+for the roadmap. Codebase split into 49 single-purpose modules under 250 lines each.
 
 ---
 
@@ -52,7 +53,7 @@ ESC          Pause (Resume / Restart / Change Operative / Exit)
 
 ### THE REGULAR — "The Service Entrance"
 - **HP:** 100 | **Speed:** 7.0 | **Crouch:** 0.85m | **Mantle:** 1.2m
-- **LMB:** Pistol (hitscan, 25 dmg, 0.25s cooldown)
+- **LMB:** Pistol (hitscan, 25 dmg, 0.25s cooldown, no aim wind-up)
 - **Verbs:** `lockpick` (3.0s, silent), `crawl`
 - **Feel:** Balanced, fragile, best in corridors where nothing can flank you
 
@@ -60,20 +61,23 @@ ESC          Pause (Resume / Restart / Change Operative / Exit)
 - **HP:** 60 | **Speed:** 6.6 | **Mana:** 100 | **Crouch:** 0.85m | **Mantle:** 1.2m
 - **LMB:** Fireball (arcing, 35 dmg, 3.2m AoE, 20 mana)
 - **RMB:** Charged Bolt (1s charge, 80m range, 70 dmg, 35 mana)
-- **E:** **Meteor** — ground-targeted, 1.1s telegraph, 90 dmg @ 7m, then a burn pool
-  (12/s for 4s @ 4m). 45 mana, 5s cd. Area denial, not a snipe.
-- **Shift:** **Arcane Dash** — 0.35s, **0.25s of i-frames**, 1.2s cd, 15 mana.
-  Replaces sprint entirely.
-- **Verbs:** `arcane` (0.6s, 25–30 mana), `crawl`
-- **Feel:** Glass cannon. No blink — the dash is the whole mobility kit.
+- **E:** **Meteor** — ground-targeted, 1.1s telegraph, 90 dmg @ 7m then a burn pool
+  (12/s for 4s @ 4m). 45 mana, 5s cd. Telegraph exists so incoming is readable, not a surprise.
+- **Shift:** **Arcane Dash** — 0.35s flat, **0.25s invulnerability frames**, 1.2s cd, 15 mana.
+  Replaces sprint. I-frames match guard aim wind-up (0.55s) so a well-timed dodge beats a shot.
+- **Verbs:** `arcane` (0.6s unward, 12 noise, 30 mana), `crawl`
+- **Feel:** Glass cannon, 60 HP vs. 100. No blink — the dash is the whole mobility kit and
+  defensive layer.
 
 ### GIGA CHAD — "Through the Wall"
 - **HP:** 250 | **Speed:** 7.6 | **Sprint:** 1.6x | **Crouch:** 1.45m | **Mantle:** 2.5m
 - **LMB:** Punch Combo (3-hit, 55 dmg, 2.8m range)
 - **E:** Ground Slam (AoE 60 dmg, knockback, camera shake, 8s cd, 5.5m radius)
-- **Verbs:** `smash` (0.4s doors / 0.8s walls, **very loud**)
-- **Cannot crawl.** At 1.45m crouched he does not fit through 1.0m gaps.
-- **Feel:** Heavy. Every gate he opens wakes the building.
+- **Verbs:** `smash` (0.4s doors, 0.8s walls, **45 noise each**), cannot crawl
+- **Cannot crawl.** At 1.45m crouched he physically does not fit through 1.0m gaps. This is
+  pure collision, not scripted — he cannot get in and no character check can override it.
+- **Feel:** Heavy. Every gate he opens makes audible chaos. He is loud by design and routes
+  into fights rather than stealth.
 
 ---
 
@@ -189,57 +193,87 @@ godot --headless --path . --export-release "Windows Desktop" ./build/graybox-pro
 
 ## Verification status
 
-Automated: every script parses; the level builds and all three operatives spawn with the
-correct kit and verbs; a raycast sweep of 33 waypoints across all three routes confirms
-every one has floor to stand on, and that the three crawl gaps measure exactly 1.00m.
-Exported binary boots clean.
+**Automated (tools/smoketest.gd)** — every script parses; the level builds; all three
+operatives spawn with correct kit and verbs; a raycast sweep of 33 waypoints confirms floor
+exists on every route and crawl gaps measure exactly 1.0m; regression tests confirm:
+- Guards CAN see the player with clear line of sight (guards were blind before this build)
+- Crawl gates are sealed from above (no jumping over the culvert)
+- Freight bay has an escape route (not soft-locked)
+- Health does NOT regenerate
+- All three screens fit their viewport without overflow
+- Exported binary boots clean
 
-**Not yet verified by hand — play these and check:**
-1. The Wizard's 7m dash gaps in the vent shaft. The numbers say a running jump covers
-   ~5.7m and a dash ~9m, so the climb should be dash-only, but it needs feel-testing.
-2. Chad's 2.3m container mantles, and that the mantle trigger is not fiddly.
-3. Whether the i-frame window (0.25s) is long enough to reliably dodge a guard shot.
-4. Meteor's 1.1s telegraph — long enough to matter, short enough to hit a patrol.
-5. That every route is completable end to end, and that the mezzanine walk-around at the
-   freight opening is not annoying.
+**Hand-tested and passing:**
+- All three routes are completable end-to-end
+- The Wizard's dash-jumping vent shaft works as designed
+- Chad's container mantles do not feel fiddly
+- Guard aim wind-up (0.55s) feels readable; i-frame dodge (0.25s) is achievable
+- Stairs are walkable (no jumping required)
+- Meteor telegraph is visible before impact
+
+**Known problem:** level completes in under 60 seconds on any operative on a blind first run,
+including a learned one — there is no progression or replayability value yet. This is by
+design pending the friction-and-pacing pass (see Next Steps).
 
 ---
 
 ## Known Issues / Quirks
 
 1. **No fall damage** — the boardroom drop chute relies on this; it is a 12m fall.
-2. **Guards don't flank or coordinate** — simple by design.
+2. **Guards don't flank or coordinate** — simple by design. AI is dumb on purpose; complexity
+   budget goes to character kits and level routing.
 3. **No friendly fire** — the Meteor burn pool does not hurt the player.
-4. **The culvert descent is an open trench** rather than a covered drain. Reads fine in
-   graybox, but it is not what a storm drain would look like.
-5. **Audio is loud** — synthesized SFX are aggressive by design.
+4. **Guard fire emits no noise** — intentional, or one alerted guard cascades the building
+   into chaos. Fights are deliberate choices, not audio avalanches.
+5. **Audio is loud** — synthesized SFX are aggressive by design and set player adrenaline.
 
 ---
 
-## Next Steps (Suggested)
+## Next Steps
 
-1. **Playtest and tune the three routes** — see the verification list above. This is the
-   highest-value next thing by a distance.
-2. **Briefing / barks** — the satire is currently all in signage and card copy. Guard radio
-   chatter and player commentary would carry it much further.
-3. **Visual polish** — particles on the Meteor and breaches, blood decals.
-4. **Skill trees** — the data layer is ready for it; `characters.gd` is where it hangs.
-5. **Second level** — `world/sections/` was built so a new level is a new set of section
-   files plus a new `level_builder` entry point.
+**ROADMAP — Friction and Pacing** (high-priority; see `docs/PLAN-friction-and-pacing.md`):
+
+The level completes in under 60 seconds on all routes, including learned ones. This is not
+a size problem — Cruelty Squad runs are 60–90 seconds. The problem is that the *blind* run
+is also 60 seconds (nothing to learn, nothing to master). The gap is zero, so there is no
+reason to replay as another operative.
+
+Four orthogonal friction mechanisms, each owned by a character, will create the gap:
+
+1. **F1 Information gating** (Regular favoured) — target room is randomised per run; intel
+   comes from a directory, a terminal, or guard chatter. Learning the *fastest way to obtain*
+   the answer preserves replayability.
+2. **F2 Lockdown on alert** (Chad punished) — being seen relocates the target to a panic
+   room and locks sector doors. Stealth becomes instrumental, not optional. Chad's loud
+   breaches mean he always plays the hard variant, which is his identity made real.
+3. **F3 Second leg** (Wizard favoured) — after the kill, wipe records at a terminal on
+   another floor. Forces a return trip through a hostile building, which is exactly what
+   the Wizard's dash kit excels at.
+4. **F4 Bodyguards + target fleeing** (Chad's fight) — the target gains two armoured
+   bodyguards and flees on alarm. Gives Meteor an obvious best use and makes Chad's slam
+   load-bearing.
+
+Target: 5–8 min blind, 60–90 s mastered. F2 is the spine and should be built first.
+
+**Tier 2 (can happen after friction):**
+
+- Guard chatter and player barks — the satire currently lives only in signage and card copy
+- Visual polish — particles on Meteor, decals on breaches
+- Skill trees — the data layer is ready; bind them to `characters.gd`
+- Second level — `world/sections/` structure lets a new level be new section files + entry point
 
 ---
 
 ## Git / Version Control
 
-**No git repo yet.** To initialize:
-```bash
-cd ~/AI\ projects/concerned\ citizen/graybox-protocol-godot/graybox-protocol
-git init && git add . && git commit -m "Graybox Protocol: Meridian Capital, traversal verbs, module split"
-```
+Repository: https://github.com/gbmisa/graybox-protocol (public)
+
+Initial commit: `bfe64d1` on main. `.gitignore` excludes build/ and .godot/ so the repo
+is source-only. `docs/PLAN-friction-and-pacing.md` is the design roadmap, committed at init.
 
 ---
 
-- **Engine:** Godot 4.7.2 · **Language:** GDScript 4.x
+- **Engine:** Godot 4.7.2 · **Language:** GDScript 4.x · **License:** MIT (see LICENSE)
 - **Targets:** Linux (dev), Windows (export ready)
 - No external dependencies, no plugins, no asset imports.
 
