@@ -1,12 +1,16 @@
 class_name ConsequenceData
 extends RefCounted
-## The consequence spine: global alarm, lockdown and guard lethality tuning.
+## The consequence spine: global alarm, the runner, lockdown and guard
+## lethality tuning.
 ##
 ## The design goal is that going loud is expensive and permanent. The alarm is
 ## a single 0-100 meter for the whole mission: loud noise, confirmed sightings
 ## and discovered bodies push it up, ten quiet seconds start a slow bleed back
-## down. At 100 the mission changes shape — lockdown — and the target's
-## relocation never un-happens, even after the meter drains.
+## down. At 100 the mission changes shape — but not instantly: the nearest
+## ALERT guard RUNS for the nearest alarm panel, and only a panel activation
+## trips lockdown. Killing the runner holds the meter at 100 with no
+## lockdown. Once lockdown trips, the target's relocation never un-happens,
+## even after the meter drains.
 ##
 ## Every number here is read live by the alarm director, the guards and the
 ## HUD; nothing about the consequence layer is hardcoded in behaviour scripts.
@@ -39,4 +43,12 @@ static func alarm() -> Dictionary:
 		# straight to ALERT. No chain reaction — called-out guards do not
 		# call out themselves.
 		"callout_radius": 25.0,
+
+		# --- alarm panels and the runner ---
+		# At half alarm the panels are revealed (beacons on, HUD marks them);
+		# at full alarm the nearest ALERT guard runs for the nearest panel,
+		# and getting inside arrive_dist of it trips lockdown. Kill the
+		# runner to hold the meter at 100 with no lockdown.
+		"panel_reveal_alarm": 50.0,
+		"runner_arrive_dist": 1.5,
 	}

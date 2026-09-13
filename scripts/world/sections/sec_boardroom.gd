@@ -71,7 +71,9 @@ static func _furniture(root: Node3D) -> void:
 			BuildUtils.box(root, Vector3(x, FLOOR_Y + 0.6, z),
 				Vector3(1.2, 1.2, 1.2), BuildUtils.METAL)
 	# Glass curtain wall along the north face — cover-free, all sightline.
-	BuildUtils.box(root, Vector3(-20, FLOOR_Y + 1.2, -38),
+	# Shifted east (x -21..-7) so it no longer swallows the roof-stair base
+	# at x [-27.5,-22.5] (P7).
+	BuildUtils.box(root, Vector3(-14, FLOOR_Y + 1.2, -38),
 		Vector3(14, 2.4, 0.6), BuildUtils.PIPE)
 
 static func _chute(root: Node3D) -> void:

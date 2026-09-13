@@ -13,6 +13,16 @@ static func floor_under(space: PhysicsDirectSpaceState3D, pos: Vector3) -> float
 	var hit := ray(space, pos + Vector3(0, 1.2, 0), pos + Vector3(0, -5.0, 0))
 	return -999.0 if hit.is_empty() else (hit["position"] as Vector3).y
 static func headroom(space: PhysicsDirectSpaceState3D, floor_pos: Vector3) -> float:
+	# Architectural headroom: skip characters (a guard posted at the
+	# check point — including their head hitbox — must not read as a
+	# low ceiling). Continues the ray past CharacterBody3D hits.
 	var from := floor_pos + Vector3(0, 0.06, 0)
-	var hit := ray(space, from, from + Vector3(0, 6.0, 0))
-	return 99.0 if hit.is_empty() else (hit["position"] as Vector3).y - floor_pos.y
+	var to := from + Vector3(0, 6.0, 0)
+	for _i in 4:
+		var hit := ray(space, from, to)
+		if hit.is_empty():
+			return 99.0
+		if not (hit.get("collider") is CharacterBody3D):
+			return (hit["position"] as Vector3).y - floor_pos.y
+		from = (hit["position"] as Vector3) + Vector3(0, 0.05, 0)
+	return 99.0

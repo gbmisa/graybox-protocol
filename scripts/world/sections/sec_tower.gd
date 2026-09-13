@@ -32,7 +32,10 @@ static func _shell(root: Node3D) -> void:
 	var c := BuildUtils.WALL
 	var h := Y_TOP - Y_BOTTOM
 	var mid := (Y_TOP + Y_BOTTOM) * 0.5
-	BuildUtils.box(root, Vector3(-30, mid, -15), Vector3(T, h, 50), c)
+	# West wall, split around the Regular's undercroft doorway at z [-12, -8].
+	# Without this opening the service stair is unreachable from the boiler room.
+	BuildUtils.box(root, Vector3(-30, mid, -26), Vector3(T, h, 28), c)
+	BuildUtils.box(root, Vector3(-30, mid, 1), Vector3(T, h, 18), c)
 	_north_face(root, c, h, mid)
 	_south_face(root, c, h, mid)
 	_east_face(root, c, h, mid)

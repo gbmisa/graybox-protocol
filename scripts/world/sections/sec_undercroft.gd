@@ -102,9 +102,11 @@ static func _stairwell(root: Node3D) -> void:
 	var c := BuildUtils.CONCRETE
 	BuildUtils.stairs(root, Vector3(-27, FLOOR_Y, -5), Vector3(0, 0, 1),
 		10, 0.5, 1.0, 5.0, c)
-	BuildUtils.plate(root, -30, -18, 4.5, 7.5, 1.0, 0.5, c)      # turn landing
+	BuildUtils.plate(root, -30, -18, 5, 8, 1.0, 0.5, c)            # turn landing
 	BuildUtils.stairs(root, Vector3(-21, 1.0, 5), Vector3(0, 0, -1),
-		10, 0.5, 1.0, 5.0, c)
-	BuildUtils.plate(root, -30, -18, -8, -5, 6.0, 0.6, c)        # top landing
+		10, 0.5, 1.4, 5.0, c)
+	# Top landing removed: the flight now runs to z -9, landing directly on
+	# the main floor plate (z -34..-8). The old separate landing plate left
+	# a seam that trapped climbers at the top.
 	BuildUtils.label(root, "SERVICE STAIR", Vector3(-24, -2, 0),
 		Color(0.35, 0.70, 1.0), 32)

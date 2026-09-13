@@ -16,10 +16,16 @@ signal died(g: Guard)
 
 enum State { PATROL, SUSPICIOUS, ALERT }
 
+## Headshot damage multiplier: hits landing on the head shape deal double.
+const HEADSHOT_MULT := 2.0
+
 var state: int = State.PATROL
 var detect: float = 0.0          # 0..1, read by the HUD
 var alive: bool = true
 var hp: float = 50.0
+## Shape index of the "HeadShape" CollisionShape3D within this body's shapes.
+## Set by GuardBody at build time; -1 until then.
+var head_shape_index: int = -1
 
 var game: GrayboxGame = null
 var waypoints: Array = []
@@ -30,6 +36,10 @@ var knockback_vel: Vector3 = Vector3.ZERO
 ## death: a kill counts as loud when this meets the consequence data's
 ## loud_kill_noise threshold.
 var kill_noise: float = 0.0
+## Set by the alarm director: this guard is running for an alarm panel.
+## While set, the brain ignores the player and moves for the panel.
+var is_runner: bool = false
+var runner_panel: AlarmPanel = null
 
 var body: GuardBody
 var senses: GuardSenses
@@ -98,6 +108,9 @@ func apply_knockback(impulse: Vector3) -> void:
 # ------------------------------------------------------- state transitions ---
 ## `propagate` lets the alarm director's callout skip the re-broadcast, so a
 ## called-out guard joins the ALERT without chain-alerting the whole map.
+## Only the originating guard plays the alert cue: the callout already flips
+## every guard in the shout radius on the same frame, and N identical
+## one-shots stacking is the loudness spike.
 func enter_alert(propagate: bool = true) -> void:
 	if not alive:
 		return
@@ -105,7 +118,8 @@ func enter_alert(propagate: bool = true) -> void:
 	brain.on_enter_alert()
 	body.set_indicator("!", Color.RED)
 	game.on_guard_alerted(self, propagate)
-	AudioSynth.play(self, "alarm")
+	if propagate:
+		AudioSynth.play(self, "alarm")
 
 ## True when the killing blow came from a loud ability (see consequence data).
 func loud_kill() -> bool:
@@ -120,7 +134,23 @@ func enter_suspicious(pos: Vector3, meter: float) -> void:
 
 func enter_patrol() -> void:
 	state = State.PATROL
+	is_runner = false
+	runner_panel = null
 	body.set_indicator("", Color.YELLOW)
+
+## Alarm-director assignment: break off whatever the guard was doing and run
+## for the panel. The brain drives the movement; arrival trips lockdown.
+func start_run(panel: AlarmPanel) -> void:
+	is_runner = true
+	runner_panel = panel
+	body.set_indicator("R", Color.ORANGE)
+
+## Back to a normal alerted guard (lockdown tripped, or the run aborted).
+func clear_run() -> void:
+	is_runner = false
+	runner_panel = null
+	if state == State.ALERT:
+		body.set_indicator("!", Color.RED)
 
 func _die() -> void:
 	alive = false
@@ -131,6 +161,11 @@ func _die() -> void:
 	body.play_death()
 
 # ---------------------------------------------------------------- helpers ---
+## True when a physics `hit["shape"]` index reported against this body is the
+## head hitbox. Hitscan and projectile code branch on this for headshots.
+func is_head_shape(shape_idx: int) -> bool:
+	return head_shape_index >= 0 and shape_idx == head_shape_index
+
 ## Walk toward a point and face the direction of travel.
 func move_to(target: Vector3, speed: float, delta: float) -> void:
 	var dir := target - global_position

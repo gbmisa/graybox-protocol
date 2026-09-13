@@ -19,8 +19,15 @@ var player: Player = null
 var guards: Array = []
 var target: Target = null
 var level_root: Node3D = null
-## The consequence spine: global alarm, lockdown, decay. Fresh per mission.
+## The consequence spine: global alarm, runner, lockdown, decay.
+## Fresh per mission.
 var director: AlarmDirector = null
+## Alarm panels, spawned per mission from AlarmPanelData. Fresh per mission.
+var panels: Array = []
+## The one klaxon instance, owned here so a mission reset can stop it (it
+## used to be an untracked child that survived clear_mission and stacked
+## over the next mission's audio).
+var _klaxon: AudioStreamPlayer = null
 
 var objective_stage: int = 1      # 1 = assassinate, 2 = extract
 var stats: Dictionary = {"kills": 0, "alarms": 0}
@@ -51,6 +58,8 @@ func clear_mission() -> void:
 	player = null
 	guards = []
 	target = null
+	panels = []
+	stop_klaxon()
 	if director != null and is_instance_valid(director):
 		director.queue_free()
 	director = null
@@ -62,6 +71,7 @@ func spawn_mission() -> void:
 	level_root = data["level_root"] as Node3D
 	_spawn_player(_resolve_spawn(data))
 	_spawn_guards(data["guard_posts"] as Array)
+	panels = AlarmPanel.spawn_all(self, level_root)
 	director = AlarmDirector.new()
 	add_child(director)
 	director.setup(self)
@@ -88,6 +98,7 @@ func _spawn_player(spawn: Dictionary) -> void:
 	player.setup(selected_char, ArmorData.get_armor(selected_armor), self)
 	player.position = spawn["pos"] as Vector3
 	player.rotation.y = float(spawn["yaw"])
+	player.anchor_safe()
 	player.died.connect(_on_player_died)
 
 func _spawn_guards(posts: Array) -> void:
@@ -154,8 +165,10 @@ func on_guard_killed(g: Guard) -> void:
 	stats["kills"] = int(stats["kills"]) + 1
 	guards.erase(g)
 	hud.add_killfeed("Guard eliminated")
-	if g.loud_kill() and director != null:
-		director.raise_alarm(float(ConsequenceData.alarm()["loud_kill_bump"]))
+	if director != null:
+		director.on_runner_down(g)
+		if g.loud_kill():
+			director.raise_alarm(float(ConsequenceData.alarm()["loud_kill_bump"]))
 
 func on_target_killed() -> void:
 	if not is_playing():
@@ -183,10 +196,35 @@ func _on_player_died() -> void:
 		return
 	flow.lose()
 
+# ---------------------------------------------------------------- klaxon ---
+## Exactly one klaxon instance exists at a time, owned here so a mission
+## reset stops it instead of letting it bleed into the next mission's audio.
+func start_klaxon() -> void:
+	stop_klaxon()
+	var p := AudioStreamPlayer.new()
+	p.stream = AudioSynth.get_sfx("klaxon")
+	add_child(p)
+	p.finished.connect(_on_klaxon_done.bind(p))
+	_klaxon = p
+	p.play()
+
+func stop_klaxon() -> void:
+	if _klaxon != null and is_instance_valid(_klaxon):
+		_klaxon.stop()
+		_klaxon.queue_free()
+	_klaxon = null
+
+func is_klaxon_playing() -> bool:
+	return _klaxon != null and is_instance_valid(_klaxon) and _klaxon.playing
+
+func _on_klaxon_done(p: AudioStreamPlayer) -> void:
+	if _klaxon == p:
+		_klaxon = null
+	p.queue_free()
+
 # ------------------------------------------------------- flow forwarding ---
 func show_title() -> void:
 	flow.show_title()
-
 func show_select() -> void:
 	flow.show_select()
 

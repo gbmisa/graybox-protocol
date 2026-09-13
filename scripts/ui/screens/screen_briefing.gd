@@ -40,10 +40,10 @@ func refresh() -> void:
 	v.add_child(wrapped(str(lvl["desc"]), 18, 760, INFO))
 	if lvl.has("objective"):
 		v.add_child(wrapped(str(lvl["objective"]), 15, 760, Color.WHITE))
-	# Single line (wide wrap): the briefing is already at the 720px limit.
+	# Single short line: the briefing is already at the 720px limit.
 	v.add_child(wrapped(
-		"Loud kills raise the alarm. A full alarm means lockdown — the target relocates under guard.",
-		14, 1000, INFO))
+		"Loud kills raise the alarm. Past half, panels are marked; at full alarm a guard RUNS for one — stop them, or the target relocates under guard.",
+		13, 1000, INFO))
 	v.add_child(text("OPERATIVE: %s — %s" % [c["name"], c["role"]], 20, GOLD))
 	v.add_child(text("YOUR ROUTE", 20, GOLD))
 	v.add_child(wrapped(str(lvl["routes"][game().selected_char]), 17, 760,

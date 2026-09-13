@@ -4,10 +4,11 @@ extends HudPanel
 ## killfeed, and transient centre messages.
 ##
 ## The detection meter shows the worst reading across all living guards, and
-## pins to full while any of them is alerted — so it answers "am I about to be
-## seen" and "has the building noticed" with one bar. Below it, the alarm
+## pins to full while any of them is alerted — so it answers "am I about to
+## be seen" and "has the building noticed" with one bar. Below it, the alarm
 ## meter shows the mission-wide consequence level: loud play fills it, quiet
-## play bleeds it off, and a full meter means lockdown.
+## play bleeds it off, past half the alarm panels are marked, and a full
+## meter sends a runner for the nearest panel.
 
 const KILLFEED_LIFETIME := 4.0
 

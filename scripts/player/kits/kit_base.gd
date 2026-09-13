@@ -50,7 +50,11 @@ func _damage_hit(hit: Dictionary, dmg: float, noise: float = 0.0) -> void:
 	if col == null:
 		return
 	if col.is_in_group("guards"):
-		(col as Guard).take_damage(dmg, player.global_position, noise)
+		var g := col as Guard
+		var hurt := dmg
+		if g.is_head_shape(int(hit.get("shape", -1))):
+			hurt = dmg * Guard.HEADSHOT_MULT
+		g.take_damage(hurt, player.global_position, noise)
 	elif col.is_in_group("target"):
 		(col as Target).take_damage(dmg, player.global_position)
 	else:

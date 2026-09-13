@@ -78,6 +78,11 @@ func _suspicious(delta: float) -> void:
 
 # ----------------------------------------------------------------- alert ---
 func _alert(player: Player, delta: float) -> void:
+	# The runner is committed: it ignores the player and moves for its
+	# panel. Everything below is the normal fight behaviour.
+	if guard.is_runner:
+		_run_to_panel(delta)
+		return
 	if player == null or not player.alive:
 		_losing(delta)
 		return
@@ -115,3 +120,20 @@ func _losing(delta: float) -> void:
 	if _lose >= GIVE_UP_TIME:
 		_lose = 0.0
 		guard.enter_suspicious(guard.last_seen, 0.5)
+
+# ----------------------------------------------------------------- runner ---
+## Straight-line steering at chase speed; move_and_slide resolves the
+## collisions, same as every other guard movement. Close enough to the panel
+## trips it — which is the lockdown the player is racing to prevent.
+func _run_to_panel(delta: float) -> void:
+	var panel := guard.runner_panel
+	if panel == null or not is_instance_valid(panel):
+		guard.clear_run()
+		return
+	var to := panel.global_position - guard.global_position
+	to.y = 0.0
+	if to.length() <= float(ConsequenceData.alarm()["runner_arrive_dist"]):
+		panel.activate()
+		return
+	guard.move_to(panel.global_position,
+		float(GuardData.stats()["chase_speed"]), delta)

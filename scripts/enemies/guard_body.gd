@@ -30,12 +30,37 @@ func _build_meshes() -> void:
 
 func _build_collision() -> void:
 	var col := CollisionShape3D.new()
+	col.name = "BodyShape"
 	var cap := CapsuleShape3D.new()
 	cap.radius = 0.35
 	cap.height = 1.7
 	col.shape = cap
 	col.position = Vector3(0, 0.9, 0)
 	guard.add_child(col)
+	# Head hitbox: a named sphere at head height on the guard's own body.
+	# It is part of the guard's hit detection, not a separate damageable
+	# entity — hits here route through the normal take_damage path at
+	# Guard.HEADSHOT_MULT. Narrower than the torso capsule (0.28 < 0.35) so
+	# it never widens the movement hull.
+	var head := CollisionShape3D.new()
+	head.name = "HeadShape"
+	var hs := SphereShape3D.new()
+	hs.radius = 0.28
+	head.shape = hs
+	head.position = Vector3(0, 1.95, 0)
+	guard.add_child(head)
+	guard.head_shape_index = _shape_index_of(head)
+
+## Shape index of `cs` among this body's CollisionShape3D children — the index
+## physics reports in raycast `hit["shape"]`.
+func _shape_index_of(cs: CollisionShape3D) -> int:
+	var idx := 0
+	for c in guard.get_children():
+		if c is CollisionShape3D:
+			if c == cs:
+				return idx
+			idx += 1
+	return -1
 
 func _build_indicator() -> void:
 	_indicator = Label3D.new()
