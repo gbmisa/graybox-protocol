@@ -116,9 +116,9 @@ func _check_lockdown() -> void:
 		_fail("target.relocated flag not set")
 	else:
 		print("  target relocated to %s" % SAFE_POS)
-	# 15 posted, 1 killed above, 6 spawned: 2 bodyguards + 4 reinforcements.
-	if _game.guards.size() != 20:
-		_fail("expected 20 guards after lockdown, found %d" % _game.guards.size())
+	# 23 posted, 1 killed above, 6 spawned: 2 bodyguards + 4 reinforcements.
+	if _game.guards.size() != 28:
+		_fail("expected 28 guards after lockdown, found %d" % _game.guards.size())
 	var near := 0
 	for g in _game.guards:
 		if (g as Guard).global_position.distance_to(SAFE_POS) <= 6.0:

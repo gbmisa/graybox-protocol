@@ -17,6 +17,10 @@ static func all() -> Dictionary:
 				"name": "STORAGE KEY",
 				"desc": "Opens the storage compound gate in the container terminal.",
 			},
+			"roof_key": {
+				"name": "ROOF KEY",
+				"desc": "Opens the office skylight hatch — a shortcut from the roof.",
+			},
 		}
 	return _keys
 

@@ -118,77 +118,40 @@ All three converge on the mezzanine at y=6, then take their own door into the bo
 
 ---
 
-## Level — PORT VESPER (fork only, redesigned 2026-09-13)
+## Level — PORT VESPER (fork only, rebuilt 2026-09-13 as possibility space)
 
 Target: **THE HARBORMASTER**. He patrols three stations *inside* the customs office and never
 leaves it — his route crosses no gated doors, so it can never wedge itself on one.
 
-**Layout:** a long east-west waterfront (x[-110,110], z[-80,25]), not a square. Water is the
-southern boundary (no south fence). Four districts:
-- **West:** container terminal with the Wizard's dash line
-- **Center:** customs office (x[-16,16], z[-30,-14]), 3.0m walls, roof skylight
-- **East:** pier, dock office, moored vessel, boat extraction
-- **Far east:** dead crane zone (CRANE 2 — OUT OF SERVICE SINCE 2019, visibly dilapidated)
+**Layout:** a continuous waterfront district (x[-110,110], z[-80,25]). Water is the
+southern boundary (no south fence). The customs office sits center (x[-20,14], z[-32,-8])
+with four three-verb doors (front, east service, west, roof skylight hatch) plus an
+optional 1.0m north vent. No per-operative routes — ground, roof/vertical, and waterfront
+approaches work for every operative.
 
-```
-  x -100..-25   TERMINAL     container maze; dash line (P1→P2→office roof)
-  x -16..16     OFFICE       customs office; E door [lockpick], W door [smash],
-                             roof skylight [arcane]; target inside
-  x 40..65      PIER         dock office, pier deck, PIER GATE [lockpick/key],
-                             moored vessel, boat extraction
-  x 80..100     CRANE        dead crane zone, storage key, Harbormaster's routine
-  z -80..-60    NORTH        fence, spawn (0,0,-74) behind blast wall, van extraction
-  x 70          CULVERT      1.0m crawl pipe under north fence (Regular's vector)
-  z 25+         WATER        southern boundary, no fence
-```
+**Key geometry:**
+- Spawn (60,0,-72): single, faces the district, 25m+ from all 23 guard posts, raycast-hidden.
+- Dash gap: 7.0m from P1 (top 4.5m) to office roof (3.6m). Jump (~4.74m) falls short; Wizard's
+  9.1m dash clears it (verified physically). The 0.9m drop keeps the dash on the roof.
+- Vent: exactly 1.0m (Regular/Wizard at 0.85m crouched fit; Chad at 1.45m blocked).
+- Safe room: physical 1.0m hardened walls at (10,0,-28), one door (three verbs), room for
+  target + 2 bodyguards. Target relocates here on full alarm (lockdown, permanent).
+- 23 guards with overlapping cones: every approach waypoint sits in 2+ vision cones
+  (raycast-verified), hiding spots every 10-15m, ghosting remains possible.
+- 6 intel (grounded: patrol routines, roster, safe-room location), 3 keys (pier_key,
+  storage_key, roof_key for the skylight hatch).
+- 3 extractions: boat (fast, exposed), van (guarded), drainage outflow (crawl only).
+- Crane: `CRANE 2 — OUT OF SERVICE SINCE 2019` (preserved).
 
-Spawn (0,0,-74) is behind a blast wall that blocks every guard post's sightline (verified
-by raycast in smoketest2: 24 waypoints checked, none see the spawn within 34m).
+**Verification (2026-09-13):**
+- Level 1 smoketest: 0 problems
+- Level 2 smoketest: 0 problems (31 floor points, 3 zones, 23 guards, 6 intel, 3 keys, UI fit)
+- Flood: 0 problems (office/storage/pier/safe-room sealed; all reachable through gates)
+- Segment physics: 0 problems (dash lands, jump falls short, vent crawl, Chad blocked)
+- Alarm: 0 problems (lockdown relocates target, 28 guards, permanent)
+- All .gd files ≤250 lines. No Level 1 changes.
 
-### The three routes (physically distinct vectors, no shared corridor)
-
-| | REGULAR | WIZARD | CHAD |
-|---|---|---|---|
-| Entry | East culvert — 1.0m crawl under north fence at x=70 | Terminal ramp → P1 (3.6m) → dash 9.0m → P2 → dash 9.0m → office roof | Warehouse west wall BREACH [smash] at (-96,-27) |
-| Middle | Cross pier district, pick east office door | Warded skylight [arcane] into office | Through warehouse, smash west office door |
-| Character | Quiet and slow | 60 HP, no cover, all tempo | Loud by design; 60m noise pulls guards |
-
-The vectors enter the office from three different sides (east door, roof skylight, west
-door) and do not converge before the office. The office interior — where the target
-patrols — is the only shared space.
-
-**Wizard dash-line physics:** the dash is perfectly horizontal (gravity suspended for
-0.35s) at 26 m/s = 9.1m. Both gaps are 9.0m: unjumpable (max jump ~4.7m empirically) and
-dashable (verified physically). Platform tops and office roof are all at 3.6m; the office
-walls are 3.0m so the dash clears them.
-
-**Chad's consequence is spatial:** the breach at (-96,-27) emits 60m noise, alerting both
-warehouse guards and terminal guards. Their patrols cross his exit corridor.
-
-**New systems (level-agnostic, data-driven):**
-- **IntelPickup:** 4 optional notes (routine, manifest12c, complaint, seized) with title/body
-  reading panel. Manifest 12-C is explicitly "OPTIONAL INTEL — flavor only."
-- **KeyItem:** pier_key (dock office → pier gate), storage_key (crane zone → storage compound).
-  Doors accept `key:<id>` as alternate methods. Minimal KEYS: HUD display.
-- **One-way locks:** office doors/skylight exit freely from inside (0-time free exit);
-  exterior entry remains gated.
-
-**Bolt tuning:** Wizard's charged bolt range is 30m, just below guard vision (34m).
-
-### Extractions
-- **Boat** (east pier deck, all operatives)
-- **Van** (north gate, guarded, all operatives)
-- **Drainage outflow** (1.0m crawl at x=70 — **Chad can never use it**)
-
-### Required signage
-`PORT VESPER — CUSTOMS IMPOUND` · `CRANE 2 — OUT OF SERVICE SINCE 2019` ·
-`DRAINAGE — KEEP CLEAR` · `DASH >` (terminal chevrons)
-
-**Authoritative floor plan:** the header comment in `scripts/world/level2/level2_builder.gd`.
-
-**Blind completion time:** unmeasured estimate only. The 5–8 minute target requires the
-F1–F4 friction systems (randomized target/intel, alarm consequences, second leg,
-bodyguards/fleeing target) which are not yet implemented.
+**Cuts from the brief:** None. All requirements met.
 
 ---
 

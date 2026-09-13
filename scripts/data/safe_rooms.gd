@@ -21,24 +21,25 @@ static func get_safe_room(level_id: int) -> Dictionary:
 			return _port_vesper()
 	return _meridian_capital()
 
-## PORT VESPER. The safe room is the north-east corner of the customs office
-## interior (x [-16,16], z [-30,-14]) — inside the building, clear of the
-## Harbormaster's three patrol stations. Bodyguards pace a tight box around
-## it. Reinforcements arrive at verified-standable map-edge points (all four
-## are floor/headroom-checked in smoketest2).
+## PORT VESPER. The safe room is a physical hardened room in the north-east
+## corner of the customs office interior (interior x[6.5,13.7], z[-31.7,-23.0],
+## one door on its west wall at (6.3,0,-26)) — clear of the Harbormaster's
+## three patrol stations. Bodyguards pace a tight box inside it.
+## Reinforcements arrive at verified-standable map-edge points (all four are
+## floor/headroom-checked in smoketest2).
 static func _port_vesper() -> Dictionary:
 	return {
 		"target_name": "Harbormaster",
 		"pos": Vector3(10, 0, -28),
 		"bodyguard_posts": [
-			[Vector3(8, 0, -28), Vector3(12, 0, -27)],
-			[Vector3(12, 0, -28.5), Vector3(8, 0, -27.5)],
+			[Vector3(7.5, 0, -24.5), Vector3(11, 0, -24.5)],
+			[Vector3(11, 0, -30), Vector3(7.5, 0, -30)],
 		],
 		"reinforce_posts": [
 			[Vector3(-4, 0, -64), Vector3(4, 0, -64)],      # north gate road
-			[Vector3(-74, 0, -26), Vector3(-66, 0, -26)],   # terminal west
-			[Vector3(84, 0, 0), Vector3(92, 0, 0)],         # crane yard
-			[Vector3(48.5, 0, 20), Vector3(56.5, 0, 20)],   # pier deck
+			[Vector3(-98, 0, -20), Vector3(-98, 0, -28)],   # west edge
+			[Vector3(96, 0, -8), Vector3(102, 0, -8)],      # east edge
+			[Vector3(40, 0, 22), Vector3(48, 0, 22)],       # south shore
 		],
 	}
 

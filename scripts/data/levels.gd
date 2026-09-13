@@ -24,14 +24,14 @@ static func all() -> Dictionary:
 			2: {
 				"id": 2,
 				"name": "PORT VESPER",
-				"desc": "A waterfront customs impound along the harbor. Container terminal (west), customs office (center), pier and vessel (east), a dead crane (far east). Water bounds the south.",
-				"objective": "OBJECTIVE: infiltrate by your route, KILL THE HARBORMASTER (paces the customs office), reach any extraction. Intel and keys are optional.",
+				"desc": "A waterfront customs impound. Terminal (west), office (center), pier (east), dead crane (far east). Water bounds the south.",
+				"objective": "OBJECTIVE: kill the HARBORMASTER (paces the customs office), reach any extraction. Every gate opens three ways — pick your cost.",
 				"infiltrate": "INFILTRATE PORT VESPER",
-				"extractions": "EXTRACTIONS: boat (east pier) · van (north gate, guarded) · drainage outflow (crawl only)",
+				"extractions": "EXTRACTIONS: boat (fast, exposed) · van (guarded) · outflow (crawl only)",
 				"routes": {
-					"regular": "EAST CULVERT — crawl under the north fence, pick the office east door. Quiet and slow.",
-					"wizard": "DASH LINE — west terminal rooftops, 9.0m dash gaps, warded skylight. No cover, all tempo.",
-					"chad": "WEST BREACH — smash the warehouse wall, smash the office west door. Every hit wakes the terminal.",
+					"regular": "GROUND — lockpick every gate: slow, silent. The vent fits you.",
+					"wizard": "ARCANE — unward gates for mana, or dash the west gap to the roof.",
+					"chad": "LOUD — smash any gate: fast, feeds the alarm. No crawl spaces.",
 				},
 			},
 		}

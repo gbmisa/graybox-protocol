@@ -3,7 +3,7 @@ extends RefCounted
 ## Pier district (east-center): x[25,75], z[-30,25] on land, the pier deck
 ## x[45,60], z[5,45] overhanging the water.
 ##
-## The PIER GATE [lockpick | key:pier_key] seals the deck at its root (z=5).
+## The PIER GATE [lockpick | arcane | smash | key:pier_key] seals the deck at its root (z=5).
 ## The fence runs x[28,72] with side fences reaching the water at both ends,
 ## so the deck cannot be walked around on land; railings (1.1m) on the water
 ## sides stop wading up onto the deck. The dock office holds the pier key
@@ -28,10 +28,12 @@ static func _build_dock_office(game: GrayboxGame, root: Node3D) -> void:
 	BuildUtils.box(root, Vector3(55, 3.2, -15), Vector3(6.4, 0.4, 5.4),
 		Color(0.26, 0.28, 0.32))
 	BuildUtils.label(root, "DOCK OFFICE", Vector3(55, 4.0, -15), Color(0.62, 0.64, 0.68), 32)
-	# Desk with the pier key and a dockworker's complaint (optional intel).
+	# Desk with the pier key, the lockdown protocol (optional intel, high
+	# value once the alarm maxes) and a dockworker's complaint.
 	BuildUtils.box(root, Vector3(55, 0.45, -15), Vector3(2.4, 0.9, 1.2),
 		Color(0.42, 0.32, 0.20))
 	KeyItem.create(game, root, "pier_key", Vector3(54.2, 0.9, -15))
+	IntelPickup.create(game, root, "saferoom", Vector3(55, 0.9, -14.7))
 	IntelPickup.create(game, root, "complaint", Vector3(55.8, 0.9, -15))
 
 static func _build_pier_deck(game: GrayboxGame, root: Node3D) -> void:
@@ -56,9 +58,9 @@ static func _build_pier_deck(game: GrayboxGame, root: Node3D) -> void:
 			Vector3(0.25, 3.0, 20), fence_c)
 	var gate := LockedDoor.create(game, root, "PIER GATE",
 		Vector3(52, 1.5, 5), Vector3(3.0, 3.0, 0.3),
-		["lockpick", "key:pier_key"])
+		["lockpick", "arcane", "smash", "key:pier_key"])
 	gate.exit_side = Vector3(0, 0, 1)  # free exit from the deck side
-	BuildUtils.label(root, "PIER GATE — LOCKPICK OR KEY", Vector3(52, 3.8, 5), Color(0.35, 0.70, 1.00), 30)
+	BuildUtils.label(root, "PIER GATE — THREE WAYS OR KEY", Vector3(52, 3.8, 5), Color(0.35, 0.70, 1.00), 30)
 	# Railings on the water sides: 1.1m, full deck length (z[5,45]), so the
 	# deck can't be mantled from the water (0.8m step + 1.1m rail > 1.2m
 	# mantle) and the sides can't be swum around the fence ends.

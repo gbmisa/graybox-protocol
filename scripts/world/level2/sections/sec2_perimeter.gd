@@ -1,12 +1,18 @@
 class_name Sec2Perimeter
 extends RefCounted
 ## PORT VESPER perimeter: the ground plate, the water boundary, the north
-## fence, the spawn staging, and the north van extraction.
+## fence, the single spawn staging, the gatehouse, and the north van
+## extraction.
 ##
-## The level runs east-west along the harbor: x[-110,110], z[-80,25].
-## WATER is the southern boundary (z > 25) — no fence along it, the pier
-## overhangs it. The north fence (z=-60) has a vehicle gateway (x[-3,3])
-## and a culvert notch at x=70 (the pipe itself is built by Sec2Culvert).
+## The level is ONE waterfront district, x[-110,110], z[-80,25]. WATER is
+## the southern boundary (z > 25) — no fence along it. The customs office
+## sits roughly central; the terminal sprawls west, the pier and the dead
+## crane east.
+##
+## ONE spawn: a single staging pad at (60,0,-72), outside the north fence,
+## facing the district. The player enters through the open vehicle gateway
+## (x[-3,3]), the three-verb fence door (x=-60), or the 1.0m crawl culvert
+## (x=70, non-Chad shortcut).
 
 const FENCE_H := 4.0
 const FENCE_T := 0.4
@@ -18,9 +24,10 @@ static func build(game: GrayboxGame, root: Node3D) -> void:
 	BuildUtils.label(root, "PORT VESPER — CUSTOMS IMPOUND",
 		Vector3(0, 5.2, -60), Color(1.0, 0.84, 0.37), 64)
 	_build_water(root)
-	_build_north_fence(root)
+	_build_north_fence(game, root)
 	_build_side_fences(root)
 	_build_staging(root)
+	_build_gatehouse(game, root)
 	_build_van(game, root)
 
 static func _build_water(root: Node3D) -> void:
@@ -45,9 +52,11 @@ static func _fence_run(root: Node3D, cx: float, width: float) -> void:
 	BuildUtils.box(root, Vector3(cx, FENCE_H * 0.5, -60),
 		Vector3(width, FENCE_H, FENCE_T), BuildUtils.WALL_DARK)
 
-static func _build_north_fence(root: Node3D) -> void:
-	# z=-60, x[-100,100]. Gaps: vehicle gateway x[-3,3], culvert notch x[68,72].
-	_fence_run(root, -51.5, 97.0)   # x[-100,-3]
+static func _build_north_fence(game: GrayboxGame, root: Node3D) -> void:
+	# z=-60, x[-100,100]. Gaps: vehicle gateway x[-3,3] (open), fence door
+	# x[-61,-59] (three verbs), culvert notch x[68,72].
+	_fence_run(root, -80.5, 39.0)   # x[-100,-61]
+	_fence_run(root, -31.0, 56.0)   # x[-59,-3]
 	_fence_run(root, 35.5, 65.0)    # x[3,68]
 	_fence_run(root, 86.0, 28.0)    # x[72,100]
 	# Gateway frame: posts + lintel, 4.2m clear.
@@ -60,6 +69,13 @@ static func _build_north_fence(root: Node3D) -> void:
 	BuildUtils.box(root, Vector3(70, 2.8, -60), Vector3(4.0, 2.4, FENCE_T),
 		BuildUtils.WALL_DARK)
 	BuildUtils.label(root, "NORTH GATE", Vector3(0, 5.6, -60), Color(1.0, 0.84, 0.37), 40)
+	# The fence door: every gate takes all three verbs (different costs).
+	var door := LockedDoor.create(game, root, "NORTH FENCE DOOR",
+		Vector3(-60, 1.5, -60), Vector3(2.0, 3.0, 0.5),
+		["lockpick", "arcane", "smash"])
+	door.exit_side = Vector3(0, 0, 1)  # free exit from inside
+	BuildUtils.label(root, "FENCE DOOR", Vector3(-60, 3.8, -60),
+		Color(0.35, 0.70, 1.0), 26)
 
 static func _build_side_fences(root: Node3D) -> void:
 	# West (x=-100) and east (x=105) world edges, z[-60,25]. The water
@@ -70,24 +86,36 @@ static func _build_side_fences(root: Node3D) -> void:
 		Vector3(FENCE_T, FENCE_H, 85), BuildUtils.WALL_DARK)
 
 static func _build_staging(root: Node3D) -> void:
-	# One staging pad per operative, each facing its vector. No blast wall:
-	# every pad is 25m+ from the nearest guard post by placement.
-	for spot in [Vector3(58, 0, -70), Vector3(-66, 0, -70),
-			Vector3(-84, 0, -70)]:
-		BuildUtils.box(root, Vector3(spot.x, 0.03, spot.z),
-			Vector3(4.0, 0.06, 4.0), Color(0.20, 0.24, 0.20))
-	BuildUtils.label(root, "STAGING", Vector3(-72, 2.9, -70),
+	# ONE staging pad for every operative, facing the district (+z).
+	BuildUtils.box(root, Vector3(60, 0.03, -72), Vector3(4.0, 0.06, 4.0),
+		Color(0.20, 0.24, 0.20))
+	BuildUtils.label(root, "STAGING", Vector3(60, 2.9, -72),
 		Color(0.62, 0.64, 0.68), 40)
 
+static func _build_gatehouse(game: GrayboxGame, root: Node3D) -> void:
+	# Open shelter by the gate: back wall, side wall, roof, a desk holding
+	# the guard roster (optional intel). The walls double as cover.
+	var c := Color(0.34, 0.36, 0.40)
+	BuildUtils.box(root, Vector3(11, 1.5, -56), Vector3(6, 3, 0.4), c)
+	BuildUtils.box(root, Vector3(14, 1.5, -53), Vector3(0.4, 3, 6), c)
+	BuildUtils.box(root, Vector3(11, 3.2, -53), Vector3(6.4, 0.4, 6.4),
+		Color(0.26, 0.28, 0.32))
+	BuildUtils.box(root, Vector3(11, 0.45, -54), Vector3(2.0, 0.9, 1.0),
+		Color(0.42, 0.32, 0.20))
+	IntelPickup.create(game, root, "roster", Vector3(11, 0.9, -54))
+	BuildUtils.label(root, "GATEHOUSE", Vector3(11, 4.0, -53),
+		Color(0.62, 0.64, 0.68), 28)
+
 static func _build_van(game: GrayboxGame, root: Node3D) -> void:
-	# Guarded north extraction: the van waits outside the gate at (0,0,-64).
+	# Guarded north extraction: the van waits outside the gate at (6,0,-64),
+	# clear of the vehicle gateway.
 	var body_c := Color(0.16, 0.17, 0.20)
-	BuildUtils.box(root, Vector3(0, 1.15, -64), Vector3(2.2, 2.3, 5.2), body_c)
-	BuildUtils.box(root, Vector3(0, 0.75, -61.0), Vector3(2.0, 1.1, 1.4),
+	BuildUtils.box(root, Vector3(6, 1.15, -64), Vector3(2.2, 2.3, 5.2), body_c)
+	BuildUtils.box(root, Vector3(6, 0.75, -61.0), Vector3(2.0, 1.1, 1.4),
 		Color(0.10, 0.12, 0.16))
-	for wx in [-1.0, 1.0]:
+	for wx in [5.0, 7.0]:
 		for wz in [-65.8, -62.4]:
 			BuildUtils.box(root, Vector3(wx, 0.35, wz), Vector3(0.3, 0.7, 0.7),
 				Color(0.05, 0.05, 0.06))
-	BuildUtils.label(root, "EXTRACTION — VAN", Vector3(0, 3.2, -64), Color(0.35, 1.0, 0.45), 36)
-	BuildUtils.zone(root, game, "van", Vector3(0, 0, -64), 4.0)
+	BuildUtils.label(root, "EXTRACTION — VAN", Vector3(6, 3.2, -64), Color(0.35, 1.0, 0.45), 36)
+	BuildUtils.zone(root, game, "van", Vector3(6, 0, -64), 4.0)

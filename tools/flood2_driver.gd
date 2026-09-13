@@ -15,11 +15,14 @@ var _bad := 0
 var _stand := {}
 
 const REGIONS := {
-	"office": {"x0": -25.0, "x1": 25.0, "z0": -35.0, "z1": -5.0,
-		"seed": Vector3(0, 0, -10), "target": Vector3(8, 0, -22),
-		"gates": [Vector3(16, 1.5, -24)]},
-	"storage": {"x0": -55.0, "x1": -25.0, "z0": -15.0, "z1": 25.0,
-		"seed": Vector3(-40, 0, -12), "target": Vector3(-43, 0, 6),
+	"office": {"x0": -34.0, "x1": 18.0, "z0": -36.0, "z1": -4.0,
+		"seed": Vector3(-30, 0, -20), "target": Vector3(-6, 0, -16),
+		"gates": [Vector3(-4, 1.5, -8), Vector3(14, 1.5, -20), Vector3(-20, 1.5, -14)]},
+	"safe_room": {"x0": -4.0, "x1": 14.0, "z0": -32.0, "z1": -4.0,
+		"seed": Vector3(-2, 0, -16), "target": Vector3(10, 0, -28),
+		"gates": [Vector3(6.3, 1.5, -26)]},
+	"storage": {"x0": -56.0, "x1": -24.0, "z0": -16.0, "z1": 28.0,
+		"seed": Vector3(-40, 0, -14), "target": Vector3(-38, 0, 10),
 		"gates": [Vector3(-40, 1.5, -6)]},
 	"pier": {"x0": 20.0, "x1": 80.0, "z0": -10.0, "z1": 50.0,
 		"seed": Vector3(52, 0, 0), "target": Vector3(52.5, 0, 20),
@@ -47,7 +50,7 @@ func _process(_delta: float) -> void:
 		for name in REGIONS.keys():
 			var r: Dictionary = REGIONS[name]
 			var reached := _flood(name, r, false)
-			var t := _cell(r["target"])
+			var t := _cell(r, r["target"])
 			if t in reached:
 				_fail("%s interior reachable with doors closed" % name)
 			else:
@@ -61,7 +64,7 @@ func _process(_delta: float) -> void:
 		for name in REGIONS.keys():
 			var r: Dictionary = REGIONS[name]
 			var reached := _flood(name, r, true)
-			var t := _cell(r["target"])
+			var t := _cell(r, r["target"])
 			if not (t in reached):
 				_fail("%s interior unreachable even with gate open" % name)
 			else:
@@ -76,14 +79,14 @@ func _flood(name: String, r: Dictionary, gates_open: bool) -> Dictionary:
 	if _stand.has(key):
 		return _stand[key]
 	var reached := {}
-	var queue: Array = [_cell(r["seed"])]
-	reached[_cell(r["seed"])] = true
+	var queue: Array = [_cell(r, r["seed"])]
+	reached[_cell(r, r["seed"])] = true
 	while not queue.is_empty():
 		var c: Vector2i = queue.pop_back()
 		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 			var n: Vector2i = c + d
-			var wx: float = r["x0"] + n.x
-			var wz: float = r["z0"] + n.y
+			var wx: float = r["x0"] + n.x * 0.5
+			var wz: float = r["z0"] + n.y * 0.5
 			if wx < r["x0"] or wx > r["x1"] or wz < r["z0"] or wz > r["z1"]:
 				continue
 			if n in reached or not _standable(wx, wz):
@@ -93,12 +96,8 @@ func _flood(name: String, r: Dictionary, gates_open: bool) -> Dictionary:
 	_stand[key] = reached
 	return reached
 
-func _cell(p: Vector3) -> Vector2i:
-	for name in REGIONS.keys():
-		var r: Dictionary = REGIONS[name]
-		if p.x >= r["x0"] and p.x <= r["x1"] and p.z >= r["z0"] and p.z <= r["z1"]:
-			return Vector2i(int(round(p.x - r["x0"])), int(round(p.z - r["z0"])))
-	return Vector2i(-1, -1)
+func _cell(r: Dictionary, p: Vector3) -> Vector2i:
+	return Vector2i(int(round((p.x - r["x0"]) * 2.0)), int(round((p.z - r["z0"]) * 2.0)))
 
 ## Standable: floor within [-0.6, 1.2] of y=0 and 1.75m of headroom.
 ## The downward ray starts at y=3.5 (above 3m walls/doors) so a probe

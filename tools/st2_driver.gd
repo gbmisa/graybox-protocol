@@ -1,32 +1,49 @@
 extends Node
 const St2Util = preload("res://tools/st2_util.gd")
 const St2Checks = preload("res://tools/st2_checks.gd")
-## PORT VESPER smoketest driver: floor, zones, target, guards, seals,
-## spawns, dash line, gates, pickups, intel, UI fit.
+## PORT VESPER smoketest driver: floor, zones, target, guards, spawn,
+## culvert/vent, dash gap, gate seals, guard coverage, hiding spots,
+## pickups, intel, UI fit.
 var _frame := 0
 var _pf := 0
 var _game: GrayboxGame
 var _bad := 0
 var _checks
 
+const SPAWN := Vector3(60, 0, -72)
+
 ## label, position, headroom: "" = standable, "crawl" = exactly 1.0m,
 ## "any" = transitional (no height asserted).
 const POINTS := [
-	["culvert outer", Vector3(70, 0, -64), "crawl"],
-	["culvert inner", Vector3(70, 0, -58), "crawl"], ["terminal mid", Vector3(-70, 0, -26), ""],
-	["dash ramp base", Vector3(-58, 0, -26), "any"], ["dash P1", Vector3(-43, 4.2, -26), ""],
-	["dash P2", Vector3(-28, 4.2, -26), ""], ["office roof", Vector3(0, 4.2, -24), ""],
-	["skylight drop", Vector3(13, 0, -20), "any"], ["office interior", Vector3(8, 0, -22), ""],
-	["breach outer", Vector3(-99, 0, -27), ""], ["breach inner", Vector3(-93, 0, -27), ""],
-	["warehouse maze", Vector3(-80, 0, -27), ""], ["wh east door", Vector3(-64, 0, -27), ""],
-	["storage interior", Vector3(-43, 0, 6), ""], ["dock office", Vector3(55, 0, -15), ""],
-	["pier deck", Vector3(52.5, 0, 20), ""], ["boat", Vector3(52.5, 0, 42), ""],
-	["van", Vector3(0, 0, -64), ""], ["outflow", Vector3(70, 0, -68), ""],
-	["crane zone", Vector3(88, 0, 0), ""],
+	["spawn", Vector3(60, 0, -72), ""], ["gateway", Vector3(0, 0, -60), ""],
+	["van", Vector3(6, 0, -64), ""], ["gatehouse", Vector3(11, 0, -53), ""],
+	["fence door", Vector3(-60, 0, -58), ""], ["culvert outer", Vector3(70, 0, -64), "crawl"],
+	["culvert inner", Vector3(70, 0, -58), "crawl"], ["outflow", Vector3(70, 0, -68), ""],
+	["north road w", Vector3(-40, 0, -52), ""], ["north road e", Vector3(30, 0, -52), ""],
+	["terminal w", Vector3(-80, 0, -20), ""], ["terminal mid", Vector3(-60, 0, 4), ""],
+	["storage", Vector3(-40, 0, 6), ""], ["warehouse", Vector3(-80, 0, -48), ""],
+	["vent outer", Vector3(-10, 0, -35), ""], ["vent mid", Vector3(-10, 0, -32), "crawl"],
+	["vent inner", Vector3(-10, 0, -29.5), ""], ["office interior", Vector3(-6, 0, -16), ""],
+	["safe room", Vector3(10, 0, -28), ""], ["skylight drop", Vector3(0, 0, -14), "any"],
+	["office roof", Vector3(4, 4.2, -14), ""], ["ramp top", Vector3(-21, 4.2, -12), "any"],
+	["dash platform", Vector3(-29.5, 5.1, -23), ""], ["west door out", Vector3(-24, 0, -14), ""],
+	["east door out", Vector3(18, 0, -20), ""], ["front door out", Vector3(-4, 0, -4), ""],
+	["dock office", Vector3(55, 0, -15), ""], ["pier deck", Vector3(52.5, 0, 20), ""],
+	["boat", Vector3(52.5, 0, 42), ""], ["crane", Vector3(88, 0, 0), ""],
+	["shore", Vector3(60, 0, 18), ""],
 ]
 const ZONES := [
-	["boat", Vector3(52.5, 0, 42), 4.0], ["van", Vector3(0, 0, -64), 4.0],
+	["boat", Vector3(52.5, 0, 42), 4.0], ["van", Vector3(6, 0, -64), 4.0],
 	["outflow", Vector3(70, 0, -68), 3.0],
+]
+## One waypoint list per approach band; every one needs 2+ guard cones
+## and a hiding spot within 15m.
+const APPROACHES := [
+	["west", [Vector3(-70, 0, -14), Vector3(-50, 0, -14), Vector3(-30, 0, -14)]],
+	["north", [Vector3(-20, 0, -52), Vector3(0, 0, -52), Vector3(20, 0, -52)]],
+	["east", [Vector3(32, 0, -20), Vector3(44, 0, -21)]],
+	["shore", [Vector3(40, 0, 18), Vector3(55, 0, 18)]],
+	["roof", [Vector3(-29.5, 4.5, -23), Vector3(-20, 3.6, -12), Vector3(-14, 3.6, -12)]],
 ]
 
 func _ready() -> void:
@@ -51,10 +68,13 @@ func _process(_delta: float) -> void:
 		_check_zones()
 		_check_target()
 		_check_guard_count()
-		_check_culvert_sealed(space)
-		_check_dash_line(space)
-		_check_spawn_sightlines(space)
-		_check_gate_seals(space)
+		_checks._check_culvert_sealed(space)
+		_checks._check_vent(space)
+		_checks._check_dash_gap(space)
+		_checks._check_spawn_sightlines(space)
+		_checks._check_gate_seals(space)
+		_check_guard_coverage(space)
+		_check_hiding_spots()
 		_checks._check_pickups()
 		_checks._check_bolt_range()
 		_checks._check_intel_grounded(space)
@@ -78,9 +98,8 @@ func _check_kit(char_id: String) -> void:
 	var p := _game.player
 	if p.char_id != char_id:
 		_fail("player char_id is %s, expected %s" % [p.char_id, char_id])
-	var want: Vector3 = (Level2Builder.player_spawns()[char_id] as Dictionary)["pos"]
-	if p.global_position.distance_to(want) > 0.5:
-		_fail("%s spawned at %s, expected %s" % [char_id, p.global_position, want])
+	if p.global_position.distance_to(SPAWN) > 0.5:
+		_fail("%s spawned at %s, expected %s" % [char_id, p.global_position, SPAWN])
 	else:
 		print("-- kit: %s ok --" % char_id)
 
@@ -114,6 +133,7 @@ func _check_zones() -> void:
 		if not ok:
 			_fail("extraction zone '%s' missing" % entry[0])
 	print("  3 zones present")
+
 func _check_target() -> void:
 	print("-- the Harbormaster --")
 	if _game.target == null:
@@ -124,97 +144,77 @@ func _check_target() -> void:
 		print("  3 patrol points")
 
 func _check_guard_count() -> void:
-	if _game.guards.size() != 15:
-		_fail("expected 15 guards, found %d" % _game.guards.size())
+	if _game.guards.size() != 23:
+		_fail("expected 23 guards, found %d" % _game.guards.size())
 	else:
-		print("-- guards --\n  15 guards posted")
+		print("-- guards --\n  23 guards posted")
 
-## The player must spawn facing the level, not a wall: yaw 0 faces -z, so
-## every level-2 spawn yaw must point the camera at its vector (dot > 0.9).
+## The player must spawn facing the district (+z), not the fence.
 func _check_spawn_yaw() -> void:
 	var yaw := _game.player.rotation.y
 	var fwd := Vector3(-sin(yaw), 0, -cos(yaw))
-	var want: Vector3 = {
-		"regular": Vector3(70, 0, -60), "wizard": Vector3(-58, 0, -40),
-		"chad": Vector3(-96, 0, -40)}[_game.selected_char]
-	var dir: Vector3 = (want - _game.player.global_position).normalized()
+	var dir: Vector3 = (Vector3(60, 0, -40) - _game.player.global_position).normalized()
 	if fwd.dot(dir) < 0.9:
 		_fail("%s spawn faces away (dot %.2f)" % [_game.selected_char, fwd.dot(dir)])
 	else:
-		print("-- yaw: %s faces the level --" % _game.selected_char)
+		print("-- yaw: %s faces the district --" % _game.selected_char)
 
-func _check_culvert_sealed(space: PhysicsDirectSpaceState3D) -> void:
-	print("-- culvert sealed --")
-	for x in [68.4, 70.0, 71.6]:
-		if St2Util.ray(space, Vector3(x, 8.0, -60), Vector3(x, 0.5, -60)).is_empty():
-			_fail("open gap above/beside the culvert at x=%.1f" % x)
-	print("  notch filled, lintel overhead")
+func _check_guard_coverage(space: PhysicsDirectSpaceState3D) -> void:
+	print("-- guard coverage --")
+	var vr := float(GuardData.stats()["vision_range"])
+	var exclude: Array[RID] = [_game.player.get_rid()]
+	for g in _game.guards:
+		exclude.append((g as Node3D).get_rid())
+	var total := 0
+	for a in APPROACHES:
+		for wp in a[1]:
+			total += 1
+			var n := 0
+			for post in GuardPosts2.all():
+				var wps: Array = (post as Dictionary)["waypoints"]
+				if _covers(space, wps[0], wps[1], wp, vr, exclude):
+					n += 1
+			if n < 2:
+				_fail("%s approach at %s: %d cones, need 2" % [a[0], wp, n])
+	print("  %d approach waypoints checked" % total)
 
-## 5.5m gaps, unjumpable (jump ~4.74m) and dashable (dash 9.1m); the 13m P2
-## and the 32m office roof are generous landings — no precision braking.
-## Corridor clear above the platforms.
-func _check_dash_line(space: PhysicsDirectSpaceState3D) -> void:
-	print("-- dash line --")
-	for g in [["gap 1", -39.9, -34.5], ["gap 2", -21.4, -16.0]]:
-		var hit := St2Util.ray(space, Vector3(g[1], 3.6, -26), Vector3(g[1] + 16.0, 3.6, -26))
-		var d: float = 999.0 if hit.is_empty() else (hit["position"] as Vector3).x - (g[1] as float)
-		# From 0.1m past the platform edge, the next face is 5.5m on.
-		if d < 5.0 or d > 6.0:
-			_fail("%s is %.1fm, must be ~5.5m" % [g[0], d])
-		else:
-			print("  %s: %.1fm" % [g[0], d])
-	if not St2Util.ray(space, Vector3(-44, 4.5, -26), Vector3(-14, 4.5, -26)).is_empty():
-		_fail("dash corridor blocked above the platforms")
-	else:
-		print("  corridor clear")
+func _covers(space: PhysicsDirectSpaceState3D, a: Vector3, b: Vector3,
+		wp: Vector3, vr: float, exclude: Array) -> bool:
+	var target: Vector3 = wp + Vector3(0, 1.6, 0)
+	for ep in [a, b]:
+		var other: Vector3 = b if ep == a else a
+		var eye: Vector3 = ep + Vector3(0, 1.6, 0)
+		if eye.distance_to(target) > vr:
+			continue
+		var to := Vector2(wp.x - ep.x, wp.z - ep.z)
+		var facing := Vector2(other.x - ep.x, other.z - ep.z)
+		if to.length() < 1.5 or to.normalized().dot(facing.normalized()) > 0.45:
+			var q := PhysicsRayQueryParameters3D.create(eye, target)
+			q.exclude = exclude
+			if space.intersect_ray(q).is_empty():
+				return true
+	return false
 
-## Every guard post must be 25m+ from every spawn pad, and no post may
-## have a clear 34m sightline to any spawn.
-func _check_spawn_sightlines(space: PhysicsDirectSpaceState3D) -> void:
-	print("-- spawn sightlines --")
-	var n := 0
-	var spawns := Level2Builder.player_spawns()
-	for post in GuardPosts2.all():
-		for wp in (post as Dictionary)["waypoints"]:
-			n += 1
-			var from: Vector3 = wp + Vector3(0, 1.6, 0)
-			for cid in spawns.keys():
-				var s: Vector3 = (spawns[cid] as Dictionary)["pos"] + Vector3(0, 1.0, 0)
-				var d: float = from.distance_to(s)
-				if d < 25.0:
-					_fail("guard at %s only %.1fm from %s spawn" % [wp, d, cid])
-				elif d <= 34.0 and St2Util.ray(space, from, s).is_empty():
-					_fail("guard at %s sees the %s spawn" % [wp, cid])
-	print("  %d guard waypoints checked x3 spawns" % n)
+## A tagged hiding spot within 15m of every approach waypoint.
+func _check_hiding_spots() -> void:
+	print("-- hiding spots --")
+	var spots: Array = []
+	for n in _game.level_root.find_children("*", "", true, false):
+		if n.is_in_group("hiding_spot"):
+			spots.append(n)
+	var total := 0
+	for a in APPROACHES:
+		for wp in a[1]:
+			total += 1
+			var w: Vector3 = wp
+			var best := 999.0
+			for s in spots:
+				var p := (s as Node3D).global_position
+				best = minf(best, Vector2(p.x - w.x, p.z - w.z).length())
+			if best > 15.0:
+				_fail("%s approach at %s: nearest cover %.1fm" % [a[0], w, best])
+	print("  %d approach waypoints, %d spots tagged" % [total, spots.size()])
 
-## Every gated barrier must be continuous across its span — no walkaround.
-func _check_gate_seals(space: PhysicsDirectSpaceState3D) -> void:
-	print("-- gate seals --")
-	# Pier fence x[28,72] at z=5 + side fences into the water at z[5,25].
-	for x in [30.0, 40.0, 52.0, 62.0, 70.0]:
-		_must_hit(space, Vector3(x, 1.5, 0), Vector3(x, 1.5, 10), "pier fence")
-	for z in [8.0, 15.0, 22.0]:
-		_must_hit(space, Vector3(22, 1.5, z), Vector3(34, 1.5, z), "pier side west")
-		_must_hit(space, Vector3(66, 1.5, z), Vector3(78, 1.5, z), "pier side east")
-	# Storage building: solid south/east/west walls, north wall split by
-	# the single 3m key door at x[-41.5,-38.5], z=-6.
-	for x in [-44.0, -42.0, -38.0, -36.0]:
-		_must_hit(space, Vector3(x, 1.5, 12), Vector3(x, 1.5, 24), "storage south wall")
-		_must_hit(space, Vector3(x, 1.5, 0), Vector3(x, 1.5, -12), "storage north wall")
-	_must_hit(space, Vector3(-52, 1.5, 6), Vector3(-40, 1.5, 6), "storage west wall")
-	_must_hit(space, Vector3(-40, 1.5, 6), Vector3(-28, 1.5, 6), "storage east wall")
-	for z in [-27.0, -24.0, -21.0]:
-		_must_hit(space, Vector3(10, 1.5, z), Vector3(20, 1.5, z), "office east wall")
-	for z in [-30.0, -27.0, -24.0]:
-		_must_hit(space, Vector3(-100, 1.5, z), Vector3(-92, 1.5, z), "warehouse west wall")
-	print("  barrier spans continuous")
-
-func _must_hit(space: PhysicsDirectSpaceState3D, a: Vector3, b: Vector3, label: String) -> void:
-	if St2Util.ray(space, a, b).is_empty():
-		_fail("walkaround gap in %s (%s -> %s)" % [label, a, b])
-
-## 4 intel notes (valid ids) + 2 keys (valid ids).
 func _fail(msg: String) -> void:
 	_bad += 1
 	print("  FAIL  %s" % msg)
-
