@@ -17,8 +17,7 @@ func build() -> void:
 	var v := column(18)
 	center.add_child(v)
 	v.add_child(text("CHOOSE YOUR OPERATIVE", 44, GOLD))
-	v.add_child(text("each one takes a different way in — you cannot swap routes mid-mission",
-		16, INFO))
+	v.add_child(text("the building has more ways in than it admits to", 16, INFO))
 	_cards = row(16)
 	v.add_child(_cards)
 
@@ -33,7 +32,7 @@ func _make_card(id: String) -> Button:
 	var label := "%s\n%s\n\n%s\n\nHP %d   SPEED %.1f\n\nROUTE\n%s\n\nCAN: %s" % [
 		c["name"], c["role"], _wrap(String(c["desc"])),
 		int(c["hp"]), float(c["speed"]),
-		_wrap(String(c["route"])), _wrap(_verb_summary(verbs))]
+		_wrap(LevelText.route(game().selected_level, id)), _wrap(_verb_summary(verbs))]
 	return card(label, CARD_SIZE, func() -> void:
 		screens.click()
 		game().select_char(id)
@@ -68,6 +67,8 @@ func _verb_summary(verbs: Dictionary) -> String:
 		out.append("unward seals")
 	if bool(verbs.get("smash", false)):
 		out.append("breach walls")
+	if float(verbs.get("squeeze_h", 0.0)) > 0.0:
+		out.append("squeeze 0.6m gaps")
 	if float(verbs.get("crouch_h", 1.0)) <= 1.0:
 		out.append("crawl 1m gaps")
 	else:

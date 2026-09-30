@@ -15,16 +15,23 @@ func tick(delta: float) -> void:
 	if Input.is_action_pressed("attack") and pistol_cd <= 0.0:
 		_fire_pistol()
 
+## The loadout's mod scales damage and replaces the pistol's noise radius.
 func _fire_pistol() -> void:
 	var a := AbilityData.get_ability("pistol")
+	var mod := LoadoutData.get_mod(player.game.selected_mod)
 	pistol_cd = float(a["cooldown"])
-	AudioSynth.play(player.game, "pistol")
-	player.game.emit_noise(player.global_position, float(a["noise"]))
-	_damage_hit(_hitscan(float(a["range"])), float(a["damage"]))
+	var noise := float(mod["noise"])
+	AudioSynth.play(player.game, "pistol", -14.0 if noise <= 0.0 else 0.0)
+	if noise > 0.0:
+		player.game.emit_noise(player.global_position, noise)
+	_damage_hit(_hitscan(float(a["range"])),
+		float(a["damage"]) * float(mod["damage_mul"]))
 
 func hud_lines() -> Array:
 	return [
-		"LMB: PISTOL%s" % _cd_text(pistol_cd),
+		"LMB: PISTOL (%s)%s" % [
+			String(LoadoutData.get_mod(player.game.selected_mod)["name"]),
+			_cd_text(pistol_cd)],
 		"C: CROUCH / CRAWL",
-		"F: PICK LOCK",
+		"F: USE",
 	]

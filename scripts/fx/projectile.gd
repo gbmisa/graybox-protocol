@@ -57,6 +57,7 @@ func _physics_process(delta: float) -> void:
 	# manual wall check so we can explode exactly at the impact point
 	var q := PhysicsRayQueryParameters3D.create(from, to)
 	q.exclude = _exclude
+	q.collision_mask = VerbData.SHOT_MASK
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
 	if not hit.is_empty():
 		global_position = hit["position"]

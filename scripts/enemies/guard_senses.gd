@@ -20,6 +20,7 @@ func tick(player: Player, delta: float) -> void:
 	var seen := _can_see(player, to_p, dist, gs)
 	if seen:
 		guard.last_seen = player.global_position
+		guard.game.note_seen()
 		guard.detect = minf(1.0, guard.detect + _rate(player, dist, gs) * delta)
 	else:
 		guard.detect = maxf(0.0, guard.detect - float(gs["lose_rate"]) * delta)
@@ -45,10 +46,13 @@ func _rate(player: Player, dist: float, gs: Dictionary) -> float:
 		rate *= float(gs["crouch_mul"])
 	if player.movement.is_sprinting:
 		rate *= float(gs["sprint_mul"])
+	var tier := guard.game.tier_at(player.global_position + Vector3(0, 1.0, 0))
+	rate *= float((gs["tier_mul"] as Dictionary).get(tier, 1.0))
 	return rate
 
 func _escalate() -> void:
 	if guard.detect >= 1.0 and guard.state != Guard.State.ALERT:
+		guard.game.stats["detected"] = int(guard.game.stats.get("detected", 0)) + 1
 		guard.enter_alert()
 	elif guard.detect >= 0.35 and guard.state == Guard.State.PATROL:
 		guard.enter_suspicious(guard.last_seen, guard.detect)

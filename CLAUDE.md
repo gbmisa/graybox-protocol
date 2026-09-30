@@ -48,13 +48,21 @@ back on its worst characters; consequences are ironic, not endorsing).
       one file. Do not split a moveset across files.
   - `enemies/` — `guard.gd` root composing `guard_senses.gd`, `guard_brain.gd`,
     `guard_combat.gd`, `guard_body.gd`; plus `target.gd` (VIP).
-  - `world/` — `level_builder.gd` (orchestrator + the full floor plan in its header),
-    `build_utils.gd` (box/label/plate/tunnel/stairs helpers), `guard_posts.gd`.
-    - `world/sections/` — one builder per area, each with a `build(root, game)`:
-      `sec_street`, `sec_tower`, `sec_undercroft`, `sec_courtyard`, `sec_dock`,
-      `sec_mezzanine`, `sec_boardroom`, `sec_roof`.
+  - `world/` — `levels.gd` (level id -> builder), `level_meridian.gd` and
+    `level_compound.gd` (orchestrators; each header holds that level's plan),
+    `build_utils.gd` / `wall_utils.gd` (geometry helpers; `WallUtils.wall` cuts
+    doors and windows with headers and sills), `guard_posts*.gd`,
+    `mission_compound.gd` (level one's doors, switches, target, extractions,
+    PA lines, and its ALARM consequences), `light_tiers.gd`, `hazard.gd`.
+    - `world/sections/` — one builder per area, each with a `build(root, game)`.
+      MERIDIAN: `sec_street`, `sec_tower`, … HOLLOWAY ROAD: `sec_app_estate`,
+      `sec_app_canal` (the approach), `sec_cmp_*` (the campus). Tools read
+      `LevelCompound.sections()`, so a new section is never missing from them.
     - `world/interactables/` — `interactable.gd` base plus `locked_door.gd`,
-      `breakable_wall.gd`, `warded_seal.gd`.
+      `breakable_wall.gd`, `warded_seal.gd`, `switch.gd` (no-verb lever),
+      `remote_door.gd` (opened/locked by the level, never by hand).
+  - `core/alert_state.gd` — building-wide CALM/ALARM; calls the level's
+    `mission.on_alarm()`.
   - `ui/` — `hud.gd` root composing `hud_vitals/abilities/feed/reticle/prompt.gd`
     (all extend `hud_panel.gd`); `ui/screens/` holds `screens.gd` (router) and one
     file per screen over `screen_base.gd`.
@@ -63,7 +71,9 @@ back on its worst characters; consequences are ironic, not endorsing).
 
 ## Core design — do not break these without asking
 
-1. **Three characters**, data-driven, each with its own traversal verbs:
+1. **Three characters**, data-driven, each with its own traversal verbs.
+   **Roster is currently the Regular only** (`CharData.ids()`); the Wizard and
+   Chad keep their data and kits and come back by editing that one line.
    - `THE REGULAR` — HP 100, speed 7.0. Hitscan pistol (25 dmg, LMB). Crouches to 0.85m.
      Verbs: **lockpick**, **crawl**. Mantle 1.2m. Stealth specialist, fragile.
    - `THE WIZARD` — HP 60, speed 6.6. LMB: arcing fireball (35 dmg). Hold RMB: charged
@@ -79,7 +89,12 @@ back on its worst characters; consequences are ironic, not endorsing).
    - STREET CLOTHES: damage taken x1.0, speed x1.0
    - LIGHT VEST: damage taken x0.65, speed x0.88
    - HEAVY PLATE: damage taken x0.35, speed x0.70
-3. **One level, MERIDIAN CAPITAL** — five floors: undercroft (-4), ground (0),
+3. **Level one is HOLLOWAY ROAD** (`level_compound.gd`, design in
+   `docs/LEVEL-compound.md`): the Regular with his base kit, **no lockpicks**.
+   A long approach (estate -> ring road -> canal -> terraces, z 46-196) to the
+   campus, with the billboard in view most of the way. Default level id is
+   still `meridian` because `tools/smoketest.gd` relies on it.
+   **MERIDIAN CAPITAL** (the original testbed) — five floors: undercroft (-4), ground (0),
    mezzanine (6), boardroom (12), roof (18.6). Tower footprint x [-30, 30], z [-40, 10].
    The full floor plan lives in the `level_builder.gd` header — read it before moving
    any geometry. **Routes are mostly hard-gated**: each operative has their own way in,
@@ -146,6 +161,12 @@ Shift sprint, but **dash for the wizard** · Space jump / mantle · ESC pause.
   It raycasts every waypoint on all three routes for floor and headroom, asserts the crawl
   gaps are 1.0m and sealed from above, and regression-tests guard vision, the freight-bay
   escape and no-regen. Add a case to it whenever you fix a bug of a kind it would have caught.
+- Level one: `tools/smoketest_compound.gd` (floor, headroom, openings) and
+  `tools/smoketest_compound_systems.gd` (mantle reach, vaults, crawl gates,
+  collision layers, headshots, sentry facing, alarm, unlabelled exits).
+  Visual: `tools/screenshot_compound.gd` (magenta sky = holes) and
+  `tools/screenshot_approach.gd` (real lighting) — both need `xvfb-run -a godot
+  --path . --rendering-method gl_compatibility --resolution 1280x720 --script …`.
 
 ## Exporting (do this FOR the user when asked — don't make him click through it)
 

@@ -1,4 +1,4 @@
-class_name LevelBuilder
+class_name LevelMeridian
 extends RefCounted
 ## Assembles MERIDIAN CAPITAL from independent section builders and returns the
 ## data the game needs to spawn the player, guards and target.

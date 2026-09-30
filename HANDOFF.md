@@ -1,8 +1,12 @@
 # Graybox Protocol — Handoff Document
 
-**Status:** Playable prototype. Completes in under 60 seconds on all routes. **Known problem:**
-there is no friction, so a blind run is as fast as a mastered one. See `docs/PLAN-friction-and-pacing.md`
-for the roadmap. Codebase split into 49 single-purpose modules under 250 lines each.
+**Status (2026-09-30):** Level one, **HOLLOWAY ROAD**, is built and playable (title screen →
+HOLLOWAY ROAD). Regular only, base kit, no lockpicks: a long approach through an estate, a
+ring road, a canal and terrace backs to a floodlit school, then several ways into the
+assembly hall. See `docs/BUILD-LOG.md` (last entry) and the header of
+`scripts/world/level_compound.gd`. Needs a blind playtest. The notes below on MERIDIAN
+are the original prototype and still accurate for that level; the exported binary in
+`build/` predates level one — re-export before using it.
 
 ---
 

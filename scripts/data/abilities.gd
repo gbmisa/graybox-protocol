@@ -90,6 +90,8 @@ static func player() -> Dictionary:
 		"mana_regen": 18.0,
 		# No hp regen by design — see player/health.gd.
 		"crouch_speed_mul": 0.5,
+		"squeeze_speed_mul": 0.4,
+		"squeeze_mana_per_s": 8.0,    # and no mana regen while squeezed
 		"eye_stand": 1.62,
 		"eye_crouch": 1.05,
 		"mouse_sens": 0.0022,

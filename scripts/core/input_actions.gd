@@ -14,6 +14,7 @@ const KEYS := {
 	"jump": [KEY_SPACE],
 	"sprint": [KEY_SHIFT],
 	"crouch": [KEY_C, KEY_CTRL],
+	"squeeze": [KEY_X],
 	"ability": [KEY_E, KEY_Q],
 	"interact": [KEY_F],
 	"pause": [KEY_ESCAPE],

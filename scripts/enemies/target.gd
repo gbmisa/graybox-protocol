@@ -3,6 +3,12 @@ extends CharacterBody3D
 
 # The assassination VIP. Unarmed: slow-patrols between points, never retaliates.
 # Marked with a red "TARGET" label and a slowly rotating red marker above the head.
+# On ALARM the level can send him running down a one-way route (flee()).
+
+signal reached(index: int)
+
+const WALK_SPEED := 1.2
+const FLEE_SPEED := 3.8
 
 var alive: bool = true
 var hp: float = 100.0
@@ -10,8 +16,10 @@ var game: GrayboxGame = null
 
 var patrol_points: Array = []
 var wp_index: int = 0
+var fleeing: bool = false
 
 var _marker: MeshInstance3D = null
+var _head_col: CollisionShape3D = null
 
 
 # ---------------------------------------------------------------- setup/visuals
@@ -20,7 +28,16 @@ func setup(p_game: GrayboxGame, pos: Vector3, p_patrol_points: Array) -> void:
 	game = p_game
 	patrol_points = p_patrol_points
 	add_to_group("target")
+	collision_mask = VerbData.BODY_MASK
 	position = pos
+
+## Run the given route once and stay at its end. Ignored once already running.
+func flee(path: Array) -> void:
+	if fleeing or not alive:
+		return
+	fleeing = true
+	patrol_points = path
+	wp_index = 0
 
 
 func _ready() -> void:
@@ -64,6 +81,13 @@ func _ready() -> void:
 	col.shape = cap
 	col.position = Vector3(0, 0.9, 0)
 	add_child(col)
+	# Separate head collider inside the head mesh (see GuardBody.head_col).
+	_head_col = CollisionShape3D.new()
+	var hb := BoxShape3D.new()
+	hb.size = Vector3(0.36, 0.32, 0.32)
+	_head_col.shape = hb
+	_head_col.position = Vector3(0, 1.95, 0)
+	add_child(_head_col)
 
 
 func _make_box(size: Vector3, color: Color, y: float) -> MeshInstance3D:
@@ -87,7 +111,8 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y = minf(velocity.y, 0.0)
 
-	if alive and patrol_points.size() > 1 and game != null and game.is_playing():
+	var moving := patrol_points.size() > 1
+	if alive and moving and game != null and game.is_playing():
 		_update_patrol(delta)
 	else:
 		velocity.x = 0.0
@@ -107,16 +132,30 @@ func _update_patrol(delta: float) -> void:
 	var to := wp - global_position
 	to.y = 0.0
 	if to.length() < 0.6:
+		reached.emit(wp_index)
+		if fleeing and wp_index >= patrol_points.size() - 1:
+			patrol_points = [wp]
+			wp_index = 0
+			velocity.x = 0.0
+			velocity.z = 0.0
+			return
 		wp_index = (wp_index + 1) % patrol_points.size()
 		return
 	var dir := to.normalized()
-	velocity.x = dir.x * 1.2
-	velocity.z = dir.z * 1.2
+	var speed := FLEE_SPEED if fleeing else WALK_SPEED
+	velocity.x = dir.x * speed
+	velocity.z = dir.z * speed
 	var yaw: float = atan2(-dir.x, -dir.z)
 	rotation.y = lerp_angle(rotation.y, yaw, 6.0 * delta)
 
 
 # ---------------------------------------------------------------- damage
+
+func take_hit(dmg: float, from_pos: Vector3, hit: Dictionary) -> void:
+	var idx := int(hit.get("shape", -1))
+	if idx >= 0 and shape_owner_get_owner(shape_find_owner(idx)) == _head_col:
+		dmg *= float(GuardData.stats()["headshot_mul"])
+	take_damage(dmg, from_pos)
 
 func take_damage(dmg: float, from_pos: Vector3) -> void:
 	if not alive:

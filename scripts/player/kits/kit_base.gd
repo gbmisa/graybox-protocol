@@ -39,6 +39,7 @@ func _hitscan(max_dist: float, spread_rad: float = 0.0) -> Dictionary:
 		dir = dir.rotated(axis.normalized(), randf_range(0.0, spread_rad))
 	var q := PhysicsRayQueryParameters3D.create(from, from + dir * max_dist)
 	q.exclude = [player.get_rid()]
+	q.collision_mask = VerbData.SHOT_MASK
 	return player.get_world_3d().direct_space_state.intersect_ray(q)
 
 func _damage_hit(hit: Dictionary, dmg: float) -> void:
@@ -47,10 +48,11 @@ func _damage_hit(hit: Dictionary, dmg: float) -> void:
 	var col := hit["collider"] as Node
 	if col == null:
 		return
+	# take_hit, not take_damage: it knows which shape was struck (headshots).
 	if col.is_in_group("guards"):
-		(col as Guard).take_damage(dmg, player.global_position)
+		(col as Guard).take_hit(dmg, player.global_position, hit)
 	elif col.is_in_group("target"):
-		(col as Target).take_damage(dmg, player.global_position)
+		(col as Target).take_hit(dmg, player.global_position, hit)
 	else:
 		return
 	player.game.hud.show_hitmarker()

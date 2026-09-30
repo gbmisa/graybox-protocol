@@ -13,6 +13,9 @@ func refresh() -> void:
 	center.add_child(v)
 	if is_win:
 		v.add_child(text("MISSION COMPLETE", 56, GOLD))
+		var radio := String(stats.get("radio", ""))
+		if not radio.is_empty():
+			v.add_child(text(radio, 20, INFO))
 		for line in _stat_lines():
 			v.add_child(text(line, 22))
 	else:
@@ -30,11 +33,15 @@ func _stat_lines() -> Array:
 	var t := float(stats.get("time_sec", 0.0))
 	var mins := int(t) / 60
 	var secs := t - float(mins * 60)
+	var loadout := String(stats.get("armor_name", ""))
+	if not String(stats.get("mod_name", "")).is_empty():
+		loadout += " · " + String(stats["mod_name"])
 	return [
 		"TIME: %d:%04.1f" % [mins, secs],
 		"EXTRACTED VIA: %s" % String(stats.get("zone", "")).to_upper(),
 		"KILLS: %d" % int(stats.get("kills", 0)),
-		"ALARMS TRIGGERED: %d" % int(stats.get("alarms", 0)),
+		"TIMES DETECTED: %d" % int(stats.get("detected", 0)),
+		"ALARMS RAISED: %d" % int(stats.get("alarms", 0)),
 		"OPERATIVE: %s" % String(stats.get("char_name", "")),
-		"ARMOR: %s" % String(stats.get("armor_name", "")),
+		"LOADOUT: %s" % loadout,
 	]

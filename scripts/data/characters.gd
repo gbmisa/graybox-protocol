@@ -17,6 +17,7 @@ static func all() -> Dictionary:
 				"style": "stealth / precision",
 				"route": "SERVICE ENTRANCE — storm drain, crawlspaces, locked doors. Tight corridors, nowhere to run.",
 				"kit": "res://scripts/player/kits/kit_regular.gd",
+				"mods": ["suppressed", "loud"],     # LoadoutData sidearm row
 				"hp": 100.0,
 				"speed": 7.0,
 				"sprint_mul": 1.5,
@@ -60,5 +61,7 @@ static func all() -> Dictionary:
 static func get_char(id: String) -> Dictionary:
 	return all().get(id, all()["regular"])
 
+## The playable roster. Scoped to the Regular for now: the Wizard and Chad
+## keep their entries, kits and verbs, so putting them back is this one line.
 static func ids() -> Array:
-	return ["regular", "wizard", "chad"]
+	return ["regular"]

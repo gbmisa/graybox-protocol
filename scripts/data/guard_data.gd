@@ -14,6 +14,9 @@ static func stats() -> Dictionary:
 		"sprint_mul": 1.6,          # gain multiplier while player sprints
 		"lose_rate": 0.5,           # meter decay/sec when player is unseen
 		"hearing_range": 30.0,
+		# Detection gain by the light tier the player stands in (D11). Three
+		# obvious steps, read from the world, never from a HUD gauge.
+		"tier_mul": {"LIT": 1.0, "DARK": 0.45, "PITCH": 0.1},
 
 		# --- gun ---
 		# Lethal on purpose: with no health regeneration a mission is a single
@@ -28,6 +31,7 @@ static func stats() -> Dictionary:
 
 		# --- body ---
 		"hp": 50.0,
+		"headshot_mul": 2.5,
 		"patrol_speed": 2.6,
 		"investigate_speed": 4.0,
 		"chase_speed": 5.4,

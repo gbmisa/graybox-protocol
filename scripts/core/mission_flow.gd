@@ -46,6 +46,11 @@ func set_armor(id: String) -> void:
 	game.screens.click()
 	game.screens.show_briefing()
 
+func set_mod(id: String) -> void:
+	game.selected_mod = id
+	game.screens.click()
+	game.screens.show_briefing()
+
 func deploy() -> void:
 	game.screens.click()
 	start_mission()

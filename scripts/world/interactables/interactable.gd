@@ -147,6 +147,17 @@ func _play_open_sfx(verb: String) -> void:
 		"arcane": AudioSynth.play(game, "arcane")
 		_: AudioSynth.play(game, "unlock")
 
+## Lets an NPC through a closed door for a few seconds without opening it —
+## the target and his escort reaching the panic room. The door stays shut and
+## locked for the player.
+func let_through(secs: float) -> void:
+	if is_open:
+		return
+	_col.set_deferred("disabled", true)
+	get_tree().create_timer(secs).timeout.connect(func() -> void:
+		if not is_open:
+			_col.set_deferred("disabled", false))
+
 ## Subclasses override to change how the obstacle gets out of the way.
 func _animate_open() -> void:
 	_col.set_deferred("disabled", true)

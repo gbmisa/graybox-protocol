@@ -4,7 +4,6 @@ extends Node
 ## drives. State itself lives on the Guard root; this decides what to do in it.
 
 const ARRIVE_DIST := 0.8
-const PATROL_WAIT := 1.0
 const SCAN_TIME := 3.0
 const CHASE_DIST := 14.0
 const GIVE_UP_DIST := 45.0
@@ -20,6 +19,7 @@ var _look: float = 0.0
 var _lose: float = 0.0
 var _strafe_dir: float = 1.0
 var _strafe_t: float = 0.0
+var _chatter_t: float = randf_range(8.0, 25.0)
 
 func setup(p_guard: Guard) -> void:
 	guard = p_guard
@@ -41,8 +41,17 @@ func on_enter_alert() -> void:
 func on_enter_suspicious() -> void:
 	_look = 0.0
 
+func reset_route() -> void:
+	_wp_index = 0
+	_wait = 0.0
+
 # ---------------------------------------------------------------- patrol ---
+## A sentry (one waypoint) or the end of a one-way route holds its post and
+## turns back to its facing every frame — re-applied here, on the way back to
+## PATROL, because an investigation spins the guard and would otherwise leave
+## him facing wherever the scan stopped (H4).
 func _patrol(delta: float) -> void:
+	_chatter(delta)
 	if guard.waypoints.is_empty():
 		guard.stop()
 		return
@@ -53,12 +62,30 @@ func _patrol(delta: float) -> void:
 		_wait = 0.0
 		guard.move_to(wp, float(GuardData.stats()["patrol_speed"]), delta)
 		return
-	# Pause at each end of the route before turning around.
 	guard.stop()
+	var at_end := _wp_index == guard.waypoints.size() - 1
+	if guard.waypoints.size() == 1 or (guard.one_way and at_end):
+		if guard.has_facing:
+			guard.face(guard.facing, delta)
+		return
+	if guard.one_way:
+		_wp_index += 1
+		return
+	# Pause at each end of the route before turning around.
 	_wait += delta
-	if _wait >= PATROL_WAIT:
+	if _wait >= guard.wait_at(_wp_index):
 		_wait = 0.0
 		_wp_index = (_wp_index + 1) % guard.waypoints.size()
+
+## Idle talk, only when the player is close enough to overhear it.
+func _chatter(delta: float) -> void:
+	_chatter_t -= delta
+	if _chatter_t > 0.0:
+		return
+	_chatter_t = randf_range(18.0, 35.0)
+	var p := guard.game.get_player()
+	if p != null and p.global_position.distance_to(guard.global_position) < 16.0:
+		guard.bark("patrol")
 
 # ------------------------------------------------------------ suspicious ---
 func _suspicious(delta: float) -> void:

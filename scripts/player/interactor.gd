@@ -89,6 +89,8 @@ func _probe() -> Interactable:
 	var from := player.camera.global_position
 	var q := PhysicsRayQueryParameters3D.create(from, from + player.aim_dir() * reach)
 	q.exclude = [player.get_rid()]
+	# Body mask, not shot mask: the barred window's ward lives on layer 2.
+	q.collision_mask = VerbData.BODY_MASK
 	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
 	if hit.is_empty():
 		return null

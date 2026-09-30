@@ -88,12 +88,14 @@ func _ground_target(max_range: float) -> Vector3:
 	var space := player.get_world_3d().direct_space_state
 	var q := PhysicsRayQueryParameters3D.create(from, from + dir * max_range)
 	q.exclude = [player.get_rid()]
+	q.collision_mask = VerbData.SHOT_MASK
 	var hit := space.intersect_ray(q)
 	if not hit.is_empty():
 		return hit["position"]
 	var endp := from + dir * max_range
 	var down := PhysicsRayQueryParameters3D.create(endp, endp + Vector3(0, -60, 0))
 	down.exclude = [player.get_rid()]
+	down.collision_mask = VerbData.SHOT_MASK
 	var ghit := space.intersect_ray(down)
 	return ghit["position"] if not ghit.is_empty() else Vector3.INF
 
@@ -139,5 +141,6 @@ func hud_lines() -> Array:
 		bolt,
 		"E: METEOR%s" % _cd_text(meteor_cd),
 		"SHIFT: DASH%s" % _cd_text(dash_cd),
+		"HOLD X: SQUEEZE",
 		"F: ARCANE UNLOCK",
 	]

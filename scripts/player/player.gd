@@ -48,6 +48,7 @@ func setup(p_char_id: String, p_armor: Dictionary, p_game: GrayboxGame) -> void:
 	char = CharData.get_char(char_id)
 	verbs = VerbData.get_verbs(char_id)
 	add_to_group("player")
+	collision_mask = VerbData.BODY_MASK
 	if char_id == "wizard":
 		max_mana = 100.0
 		mana = max_mana
@@ -104,8 +105,9 @@ func _physics_process(delta: float) -> void:
 	movement.tick(delta)
 	move_and_slide()
 
+## No regen while squeezed: the squeeze is paid for out of the pool (M4).
 func _regen_mana(delta: float) -> void:
-	if max_mana > 0.0:
+	if max_mana > 0.0 and not movement.squeezing:
 		mana = minf(max_mana, mana + float(AbilityData.player()["mana_regen"]) * delta)
 
 func can_act() -> bool:
