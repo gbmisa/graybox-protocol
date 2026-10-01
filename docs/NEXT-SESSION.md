@@ -4,8 +4,8 @@ Handoff updated 2026-09-30 after the **verticality pass**. Gregory played the fi
 ("much better than it was before"), asked for "more vertical, more entry paths", played
 that and said **it's improved**. Same direction; keep going in it.
 
-Branch `level-one-holloway-road`. Commit `59a5839` is the first build; the verticality
-pass and room-name tags are **uncommitted** in the working tree (not pushed, not merged).
+Branch `level-one-holloway-road`: `59a5839` first build, `4c9be91` verticality pass +
+room-name tags (not pushed, not merged to `main`).
 `screenshots/` and `blender/` are generated and deliberately untracked.
 
 ## Standing rules from Gregory (these override older docs)
@@ -127,7 +127,7 @@ Then **Read the PNGs** — that is how the missing-wall bug was caught. Play:
    Not yet confirmed by play: each climb step (all rises ≤ 1.15), the overbridge → wall
    jump. Fire-escape/scaffold ramps render as thick wedges (ramp thickness 1.2) — thin
    them if he minds.
-1. Commit the verticality pass when he says so (branch, not main).
+1. Merge to `main` / push only when asked.
 2. Tune by feel — approach guard count and lanes (A6 moved to z 44 for the overbridge
    stair), subway sentry head-on, fog density, billboard size, PA timing.
 2. Re-export the Linux build (`build/` predates level one) when he wants a binary.
