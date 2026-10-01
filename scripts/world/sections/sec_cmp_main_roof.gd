@@ -3,8 +3,9 @@ extends RefCounted
 ## Main block roof and the Regular's way down through it.
 ##
 ##   Roof deck      walk 8.4, slab 0.4 (underside 8.0), parapet 0.6 tall and
-##                  0.3 thick — a mantle, not a gate. Gap on the east face at
-##                  z [-15, -13.5], where the crate stair tops out.
+##                  0.3 thick — a mantle, not a gate. Gaps where the climbs
+##                  top out: east z [-15, -13.5] (crate stair), south x
+##                  [-18, -16.2] (scaffold), west z [-3, -2] (fire escape).
 ##   Duct           1.0m tall, 1.2m wide, on the deck at z -12 from its open
 ##                  mouth at x 7 west to x 2; the last 1.2m of its floor is a
 ##                  hole in the slab. Chad's crouch does not fit.
@@ -50,8 +51,12 @@ static func _parapet(root: Node3D) -> void:
 	var y0 := ROOF_Y
 	var y1 := ROOF_Y + PARAPET_H
 	WallUtils.wall(root, "x", -20, -22.15, 10.15, y0, y1, PARAPET_T, c)
-	WallUtils.wall(root, "x", -2, -22.15, 10.15, y0, y1, PARAPET_T, c)
-	WallUtils.wall(root, "z", -22, -20, -2, y0, y1, PARAPET_T, c)
+	WallUtils.wall(root, "x", -2, -22.15, 10.15, y0, y1, PARAPET_T, c, [
+		WallUtils.hole(-18.0, -16.2, y0, y1),    # scaffold top
+	])
+	WallUtils.wall(root, "z", -22, -20, -2, y0, y1, PARAPET_T, c, [
+		WallUtils.hole(-3.0, -2.0, y0, y1),      # fire escape top
+	])
 	WallUtils.wall(root, "z", 10, -20, -2, y0, y1, PARAPET_T, c, [
 		WallUtils.hole(-15.0, -13.5, y0, y1),
 	])

@@ -195,3 +195,18 @@ longer level with anticipation and exploration. What landed:
 all 0; a 33s live soak with guards throws no script errors.
 *Next:* Gregory's blind run. Tuning by feel: approach guard count/lanes, fog density,
 billboard size, whether the subway sentry is too hard head-on. Van idle sound not done.
+
+**Verticality pass · Opus** — Gregory: "more vertical, more entry paths". New
+`sec_app_heights` (tower deck-access walkway -> road deck; pipe bridge over the canal to a
+pumping-station roof; extension chain 1.1-5.4 onto the terrace roofs, chimneys up top;
+overbridge at 5.0 over the south road whose verge landing is a jump onto the compound
+wall top) and `sec_cmp_climbs` (boiler-house climb from the west alley onto the wall;
+west-face fire escape -> new 1F door into the strip over the west corridor -> door onto
+the west landing behind G9, and on to the roof; courtyard scaffold -> new 1F door into
+G8's south corridor, and on to the roof). Road-deck rails gapped where the walkway and
+pipe bridge join; parapet gaps at both new roof tops. A6 moved z 49 -> 44 (off the
+overbridge stair).
+*Broke:* nothing — import clean, all three smoketests 0; 17 points, 3 doors, 4 lines added.
+*Next:* walk it. Unverified by play: every mantle step (all rises <= 1.15), the 3m jump
+from the overbridge to the wall top. The wall top now links to the gatehouse roof, so the
+avenue (E3) is reachable without the lever — legal shortcut or seal it, Gregory's call.

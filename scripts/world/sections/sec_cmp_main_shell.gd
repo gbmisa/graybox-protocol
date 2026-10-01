@@ -12,7 +12,10 @@ extends RefCounted
 ##   east   L1 canteen service door (z -12, under the bridge) — lockpick; the
 ##          bridge door directly above it on 1F. r4 put L1 at z -19, behind
 ##          the first crate stack.
-##   south  portico door (x 0); 1F south window (x 0, 4.0..6.0) — Chad's plate
+##   south  portico door (x 0); 1F south window (x 0, 4.0..6.0) — Chad's plate;
+##          1F door (x -8.1) off the scaffold (`sec_cmp_climbs`)
+##   west   1F door (z -11.5) off the fire escape, into the strip over the
+##          west corridor
 ##
 ## Portico: roof 2.4 on two solid piers, so Chad's chest probe has a face to
 ## find at +0.9 (a roof on posts would pass it straight through).
@@ -33,9 +36,11 @@ static func build(root: Node3D, game: GrayboxGame) -> void:
 	WallUtils.wall(root, "x", Z1, X0 - e, X1 + e, 0, TOP, T, c, [
 		WallUtils.door(0.0),
 		WallUtils.hole(-0.5, 0.5, 4.0, 6.0),
+		WallUtils.door(-8.1, 4.0),               # scaffold lift -> 1F corridor
 	])
 	WallUtils.wall(root, "z", X0, Z0 + e, Z1 - e, 0, TOP, T, c, [
 		WallUtils.door(-6.0),
+		WallUtils.door(-11.5, 4.0),              # fire escape -> 1F west strip
 	])
 	WallUtils.wall(root, "z", X1, Z0 + e, Z1 - e, 0, TOP, T, c, [
 		WallUtils.door(-12.0),

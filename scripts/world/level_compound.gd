@@ -13,7 +13,10 @@ extends RefCounted
 ##   z  70-92   allotments
 ##   z  46-70   terrace backs: three alleys and a walk-through house
 ## The campus billboard (19m, lit) and mast are visible nearly all the way;
-## PA lines fire as you cross each stretch.
+## PA lines fire as you cross each stretch. Every stretch also has a high way
+## through (sec_app_heights): the tower's deck-access walkway onto the road
+## deck, the pipe bridge over the canal, the terrace roofs, and the
+## overbridge whose south landing is a jump from the compound wall top.
 ##
 ## CAMPUS  compound wall x [-28, 28] z [-24, 24], 4.0 tall.
 ##   y   8.4  main roof · duct -> ceiling void (7.0-8.0) over the hall
@@ -26,7 +29,10 @@ extends RefCounted
 ## WAYS IN: the shutter crawl (east lane) -> store -> crate stair -> roof ->
 ## duct -> gallery; the bin-store gate -> refuse yard -> courtyard -> portico
 ## or alley; gym -> mezzanine -> bridge -> hall rear; canteen service door ->
-## north corridor -> north stair. WAYS OUT: culvert -> van; gate lever ->
+## north corridor -> north stair; over the wall from the overbridge or the
+## boiler-house climb (west alley); the fire escape (west yard) to the 1F
+## west strip behind G9, or the roof; the scaffold (courtyard) to the 1F
+## south corridor, or the roof. WAYS OUT: culvert -> van; gate lever ->
 ## car (E3); or back out the way you came and walk to the van.
 
 const PLAYER_SPAWN := Vector3(0, 0, 190)
@@ -47,6 +53,9 @@ static func sections() -> Dictionary:
 		"dressing": SecCmpDressing,
 		"approach_estate": SecAppEstate,
 		"approach_canal": SecAppCanal,
+		"approach_heights": SecAppHeights,
+		"climbs": SecCmpClimbs,
+		"room_names": SecRoomNames,   # playtest tags; SHOW / --no-room-names
 	}
 
 static func build(game: GrayboxGame) -> Dictionary:

@@ -15,6 +15,9 @@ extends RefCounted
 ##   South corridor  x [-13,  4] z [ -6, -2]   void x [-3, 2] over the lobby
 ##   Passage E       x [  2, 10] z [ -8, -6]   2.0m mouth onto the shelf
 ##   East landing    x [  6, 10] z [-20, -8]   bridge door east (shell)
+##   West strip      x [-22,-19] z [-20, -2]   over the west corridor; fire-
+##                                              escape door west, door east
+##                                              onto the west landing (z -9.5)
 ##
 ## Shafts with no floor: the north stair (x [-13,-10] z [-18.5,-14]), the west
 ## stair (x [-19,-13] z [-8,-2]), the east stair (x [4,10] z [-6,-2]) and the
@@ -76,7 +79,7 @@ static func _rooms(root: Node3D) -> void:
 	_hatch_duct(root)
 	# West landing: west wall; guard over the north stair shaft; south guard
 	# over the west stair shaft, leaving passage W's mouth open.
-	_vz(root, -19, -14, -8, [])
+	_vz(root, -19, -14, -8, [WallUtils.door(-9.5, FLOOR_Y)])   # from the west strip
 	_hx(root, -14, -13, -10, [])
 	_hx(root, -8, -19, -13, [])
 	# West stair shaft's west side, above the west corridor's ceiling.

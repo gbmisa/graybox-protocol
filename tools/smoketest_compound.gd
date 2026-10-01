@@ -46,6 +46,24 @@ const POINTS := [
 	["A alley", Vector3(0, 0, 57), ""],
 	["A walk-through house", Vector3(-10, 0, 57), ""],
 	["A terrace front", Vector3(0, 0, 49), ""],
+	# --- THE HIGH WAYS THROUGH (sec_app_heights, sec_cmp_climbs) ---
+	["H deck-access balcony", Vector3(-30, 4.0, 170.7), ""],
+	["H walkway over the yard", Vector3(-42.1, 4.0, 150), ""],
+	["H walkway meets the road deck", Vector3(-42.1, 4.0, 137), ""],
+	["H pipe bridge over the canal", Vector3(38.6, 4.0, 96), ""],
+	["H pumping station roof", Vector3(40, 4.0, 77), ""],
+	["H top extension", Vector3(-32.2, 5.4, 63), ""],
+	["H terrace roof", Vector3(-30, 6.0, 57), ""],
+	["H overbridge span", Vector3(-25.5, 5.0, 39), ""],
+	["H overbridge verge landing", Vector3(-25.5, 5.0, 29), ""],
+	["H compound wall top", Vector3(-25.5, 4.0, 24.4), ""],
+	["H boiler climb cabinet", Vector3(-34.75, 3.2, -14.25), ""],
+	["H boiler house roof", Vector3(-31, 4.0, -13), ""],
+	["H fire escape landing", Vector3(-23.15, 4.0, -11.5), ""],
+	["H 1F west strip", Vector3(-20.5, 4.0, -11), ""],
+	["H fire escape top", Vector3(-23.15, 8.4, -2.2), ""],
+	["H scaffold lift", Vector3(-8.1, 4.0, 0), ""],
+	["H scaffold top", Vector3(-17.1, 8.4, 0), ""],
 	# --- THE REGULAR — "Deliveries" (§4.1) ---
 	["R spawn", Vector3(0, 0, 40), ""],
 	["R east lane", Vector3(30, 0, 30), ""],
@@ -132,6 +150,9 @@ const DOORS := [
 	["N-stair landing <-> hall", Vector3(-10, 4, -19.2), "x", "z"],
 	["gatehouse <-> north yard", Vector3(-6, 0, -24.4), "z", "x"],
 	["east lane <-> refuse yard (bin gate)", Vector3(28.4, 0, 18), "x", "z"],
+	["fire escape <-> 1F west strip", Vector3(-22, 4, -11.5), "x", "z"],
+	["1F west strip <-> west landing", Vector3(-19, 4, -9.5), "x", "z"],
+	["scaffold lift <-> 1F south corridor", Vector3(-8.1, 4, -2), "z", "x"],
 ]
 
 ## Explicit two-point checks §14.26 calls out by name: label, from, to,
@@ -147,6 +168,10 @@ const LINES := [
 	["east shelf -> passage E mouth", Vector3(3, 4, -4), Vector3(3, 4, -7.4), true],
 	["passage E -> east landing", Vector3(3, 4, -7), Vector3(8, 4, -7), true],
 	["west foyer -/-> west stair well (M8)", Vector3(-8, 0, -5), Vector3(-16, 0, -4), false],
+	["road deck -> deck-access walkway", Vector3(-42.1, 4.5, 136), Vector3(-42.1, 4.5, 140), true],
+	["road deck -> pipe bridge", Vector3(38.6, 4.5, 114), Vector3(38.6, 4.5, 110), true],
+	["fire escape top -> roof", Vector3(-23.15, 8.9, -2.5), Vector3(-20, 8.9, -2.5), true],
+	["scaffold top -> roof", Vector3(-17.1, 8.9, 0), Vector3(-17.1, 8.9, -4), true],
 ]
 
 func _process(_delta: float) -> bool:

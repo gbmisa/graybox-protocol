@@ -3,6 +3,9 @@
 > Project instructions for AI assistants (Claude Code in VS Code, etc.) working on this repo.
 > The human (Gregory) is technical, terse, and the final judge. Keep answers short with key
 > reasons. Do the work; don't narrate the work.
+>
+> **Starting a session? Read `docs/NEXT-SESSION.md` first** — current state, Gregory's
+> standing scope rules for level one, and how to verify.
 
 ## What this is
 
@@ -56,7 +59,9 @@ back on its worst characters; consequences are ironic, not endorsing).
     PA lines, and its ALARM consequences), `light_tiers.gd`, `hazard.gd`.
     - `world/sections/` — one builder per area, each with a `build(root, game)`.
       MERIDIAN: `sec_street`, `sec_tower`, … HOLLOWAY ROAD: `sec_app_estate`,
-      `sec_app_canal` (the approach), `sec_cmp_*` (the campus). Tools read
+      `sec_app_canal` (the approach), `sec_app_heights` (its high routes),
+      `sec_cmp_*` (the campus; `sec_cmp_climbs` = fire escape, scaffold,
+      boiler climb). Tools read
       `LevelCompound.sections()`, so a new section is never missing from them.
     - `world/interactables/` — `interactable.gd` base plus `locked_door.gd`,
       `breakable_wall.gd`, `warded_seal.gd`, `switch.gd` (no-verb lever),

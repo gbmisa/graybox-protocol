@@ -24,7 +24,7 @@ static func approach() -> Array:
 		{"id": "A3", "waypoints": [Vector3(-36, 4, 125), Vector3(36, 4, 125)]},
 		{"id": "A4", "waypoints": [Vector3(18, 0, 106)], "facing": PI / 2.0},
 		{"id": "A5", "waypoints": [Vector3(-30, 0, 86), Vector3(30, 0, 86)]},
-		{"id": "A6", "waypoints": [Vector3(-30, 0, 49), Vector3(30, 0, 49)]},
+		{"id": "A6", "waypoints": [Vector3(-30, 0, 44), Vector3(30, 0, 44)]},   # clear of the overbridge stair
 	]
 
 static func campus() -> Array:

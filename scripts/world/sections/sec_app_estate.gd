@@ -104,8 +104,12 @@ static func _embankment(root: Node3D) -> void:
 	WallUtils.block(root, -1.5, 1.5, 3.0, TOP, 112, 138, c)      # subway roof
 	WallUtils.block(root, 1.5, 44, 0, TOP, 112, 138, c)
 	BuildUtils.plate(root, -44, 44, 112, 138, TOP + 0.02, 0.02, BuildUtils.STREET)
-	for z in [112.2, 137.8]:
-		WallUtils.block(root, -44, 44, TOP, TOP + 1.0, z - 0.1, z + 0.1, BuildUtils.METAL)
+	# Rails, open where the high routes join (sec_app_heights): the pipe
+	# bridge north, the deck-access walkway south.
+	WallUtils.wall(root, "x", 112.2, -44, 44, TOP, TOP + 1.0, 0.2, BuildUtils.METAL, [
+		WallUtils.hole(37.8, 39.4, TOP, TOP + 1.0)])
+	WallUtils.wall(root, "x", 137.8, -44, 44, TOP, TOP + 1.0, 0.2, BuildUtils.METAL, [
+		WallUtils.hole(-43.6, -40.6, TOP, TOP + 1.0)])
 	for x in [-20.0, 0.0, 20.0]:
 		BuildUtils.box(root, Vector3(x, TOP + 0.03, 125), Vector3(4.0, 0.02, 0.2),
 			Color(0.8, 0.8, 0.7), false)
