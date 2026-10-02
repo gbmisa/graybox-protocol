@@ -12,6 +12,10 @@ extends Node
 
 const RESIZE_SPEED := 14.0
 const STAND_CHECK_MARGIN := 0.05
+## The world's 9.8 is for physics props; a body that floats that long feels
+## like the moon. Jump speeds in characters.gd are tuned against this.
+const PLAYER_GRAVITY := 24.0
+const FALL_MUL := 1.35
 const STEP_HEIGHT := 0.45
 const STEP_REACH := 0.55
 
@@ -187,8 +191,12 @@ func _current_speed() -> float:
 
 # ----------------------------------------------------------- vertical ---
 func _apply_vertical(delta: float) -> void:
-	var grav: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+	var grav := PLAYER_GRAVITY
 	if not player.is_on_floor():
+		# Heavier on the way down so a jump (or a walk off a crate) has weight
+		# instead of hanging in the air.
+		if player.velocity.y < 0.0:
+			grav *= FALL_MUL
 		player.velocity.y -= grav * delta
 	if Input.is_action_just_pressed("jump"):
 		# A ledge in front always wins over a plain jump, so holding forward

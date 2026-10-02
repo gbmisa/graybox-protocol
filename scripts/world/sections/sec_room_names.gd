@@ -7,7 +7,8 @@ extends RefCounted
 ## with `-- --no-room-names` (or SHOW = false once playtesting is done).
 ##
 ## Prefixes: A approach · H high routes · C campus outdoors · G main ground
-## floor · F main first floor · R main roof · Y gym · U undercroft.
+## floor · F main first floor · R main roof · Y gym · U undercroft · N the
+## Scoring Annex.
 ## Positions are where the tag floats, not the floor.
 
 const SHOW := true
@@ -48,6 +49,9 @@ const ROOMS := [
 	["H06", "TERRACE ROOFS", Vector3(-30, 8.0, 57)],
 	["H07", "OVERBRIDGE", Vector3(-25.5, 7.0, 40)],
 	["H08", "COMPOUND WALL TOP", Vector3(-20, 6.0, 24.4)],
+	["H09", "GANTRY", Vector3(39.4, 6.0, 70)],
+	["H10", "SCORE MAINTENANCE SCAFFOLD", Vector3(12.6, 6.6, 31)],
+	["H11", "BILLBOARD CATWALK", Vector3(-6, 15.5, 27.8)],
 	# Campus, outdoors.
 	["C01", "SOUTH ROAD", Vector3(0, 2.4, 40)],
 	["C02", "VERGE", Vector3(0, 2.2, 27)],
@@ -71,6 +75,9 @@ const ROOMS := [
 	["C20", "FIRE ESCAPE", Vector3(-23.15, 6.0, -11.5)],
 	["C21", "SCAFFOLD", Vector3(-8.1, 6.0, 0.8)],
 	["C22", "CULVERT", Vector3(-27, 0.6, 6)],
+	["C23", "UPPER DECK", Vector3(12, 4.8, -31)],
+	["C24", "WEST GANTRY", Vector3(-27.3, 4.6, 2)],
+	["C25", "PODIUM", Vector3(-17.7, 4.4, 21.3)],
 	# Main block, ground floor (ceiling 3.6).
 	["G01", "WEST CORRIDOR N", Vector3(-20.5, 2.3, -16)],
 	["G02", "WEST CORRIDOR S", Vector3(-20.5, 2.3, -5)],
@@ -103,6 +110,22 @@ const ROOMS := [
 	["R01", "MAIN ROOF", Vector3(-10, 10.4, -11)],
 	["R02", "ROOF DUCT", Vector3(4.5, 8.9, -12)],
 	["R03", "CEILING VOID", Vector3(-2, 7.5, -14)],
+	["R04", "PLANT ROOM TOP", Vector3(-3.5, 12.0, -15)],
+	["R05", "WATER TANK", Vector3(-5.4, 13.2, -14.6)],
+	# Scoring Annex.
+	["N01", "ANNEX YARD", Vector3(-12, 2.4, -50)],
+	["N02", "CHECKPOINT", Vector3(0, 2.4, -42)],
+	["N03", "DOCK", Vector3(16, 2.4, -46)],
+	["N04", "SERVICE CRAWL", Vector3(14.6, 1.6, -39.2)],
+	["N05", "ANNEX HALL", Vector3(-4, 2.6, -50)],
+	["N06", "ANNEX OFFICE", Vector3(-8, 6.6, -56)],
+	["N07", "SERVER ROOM", Vector3(1, 6.8, -52)],
+	["N08", "ANNEX CORRIDOR", Vector3(-4, 6.6, -48)],
+	["N09", "FIRE STAIR", Vector3(8, 6.6, -55)],
+	["N10", "ANNEX ROOF", Vector3(-4, 9.6, -52)],
+	["N11", "GENERATOR", Vector3(-18, 2.4, -54.5)],
+	["N12", "BACK STRIP", Vector3(0, 2.4, -60)],
+	["N13", "CRANE RUN", Vector3(14.5, 8.6, -46)],
 	# Gym.
 	["Y01", "GYM STORE", Vector3(22, 2.3, -17)],
 	["Y02", "SHUTTER CRAWL", Vector3(29, 0.6, -17)],
@@ -110,6 +133,7 @@ const ROOMS := [
 	["Y04", "MEZZANINE", Vector3(22, 6.0, -15)],
 	["Y05", "GYM ROOF", Vector3(22, 8.4, 0)],
 	["Y06", "HELIPAD DECK", Vector3(23, 13.0, -8)],
+	["Y07", "DECK STAIR", Vector3(23.5, 9.6, -0.5)],
 	# Undercroft (ceiling -0.8).
 	["U01", "BOILER BASEMENT", Vector3(-31, -1.3, -11)],
 	["U02", "SQUEEZE", Vector3(-25, -2.6, -17.5)],
@@ -119,7 +143,7 @@ const ROOMS := [
 
 static func build(root: Node3D, game: GrayboxGame) -> void:
 	var args := OS.get_cmdline_args() + OS.get_cmdline_user_args()
-	if not SHOW or "--no-room-names" in args:
+	if not SHOW or "--no-room-names" in args or not Settings.room_tags():
 		return
 	for r in ROOMS:
 		var l := Label3D.new()

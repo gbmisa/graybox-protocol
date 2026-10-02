@@ -34,6 +34,11 @@ extends RefCounted
 ## west strip behind G9, or the roof; the scaffold (courtyard) to the 1F
 ## south corridor, or the roof. WAYS OUT: culvert -> van; gate lever ->
 ## car (E3); or back out the way you came and walk to the van.
+## HIGH LEVELS (sec_cmp_vertical): car-park deck in the avenue (3.0), west
+## gantry along the wall (3.0), courtyard podium (2.85), plant-room top and
+## water tank on the main roof (10.4 / 11.55) — each a mantle to the wall top.
+## SCORING ANNEX (sec_annex) north of the avenue: the secondary objective —
+## wipe the Consent Score server (SecondaryScore). Checkpoint or crawl in.
 
 const PLAYER_SPAWN := Vector3(0, 0, 190)
 
@@ -55,6 +60,18 @@ static func sections() -> Dictionary:
 		"approach_canal": SecAppCanal,
 		"approach_heights": SecAppHeights,
 		"climbs": SecCmpClimbs,
+		"lanes": SecCmpLanes,
+		"vertical": SecCmpVertical,
+		"annex": SecAnnex,
+		"crane_run": SecCraneRun,
+		"alarm": SecAlarm,
+		"billboard": SecCmpBillboard,
+		"exits": SecCmpExits,
+		"props_approach": SecPropsApproach,
+		"props_campus": SecPropsCampus,
+		"props_interior": SecPropsInterior,
+		"art": SecArt,
+		"skyline": SecSkyline,
 		"room_names": SecRoomNames,   # playtest tags; SHOW / --no-room-names
 	}
 
@@ -70,6 +87,7 @@ static func build(game: GrayboxGame) -> Dictionary:
 		"level_root": root,
 		"player_spawn": PLAYER_SPAWN,
 		"guard_posts": GuardPostsCompound.all(),
+		"civilians": CivilianPostsCompound.all(),
 		"mission": MissionCompound.create(game, root),
 		"barks": text["barks"],
 		"objective": text["objective"],

@@ -40,6 +40,9 @@ var health: PlayerHealth
 var mantle: PlayerMantle
 var interactor: PlayerInteractor
 var kit: KitBase
+## Set by kits that hold something (the Regular's pistol); null otherwise.
+var viewmodel: PlayerViewmodel = null
+var footsteps: PlayerFootsteps
 
 func setup(p_char_id: String, p_armor: Dictionary, p_game: GrayboxGame) -> void:
 	char_id = p_char_id
@@ -68,6 +71,8 @@ func _build_body() -> void:
 	add_child(head)
 	camera = Camera3D.new()
 	camera.fov = 75.0
+	# Close near plane: the viewmodel sits ~0.1m from the eye.
+	camera.near = 0.02
 	camera.current = true
 	head.add_child(camera)
 
@@ -77,7 +82,8 @@ func _build_components() -> void:
 	health = PlayerHealth.new()
 	mantle = PlayerMantle.new()
 	interactor = PlayerInteractor.new()
-	for c in [look, movement, health, mantle, interactor]:
+	footsteps = PlayerFootsteps.new()
+	for c in [look, movement, health, mantle, interactor, footsteps]:
 		add_child(c)
 		c.setup(self)
 	health.died.connect(_on_health_died)
@@ -98,6 +104,9 @@ func _physics_process(delta: float) -> void:
 	_regen_mana(delta)
 	kit.tick(delta)
 	interactor.tick(delta)
+	footsteps.tick(delta)
+	if viewmodel != null:
+		viewmodel.tick(delta)
 	# Mantling drives position directly and bypasses physics entirely.
 	if mantle.is_active():
 		mantle.tick(delta)

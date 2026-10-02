@@ -9,17 +9,25 @@ extends RefCounted
 const EXTRACTIONS := [
 	{"name": "van", "pos": Vector3(-38, -2.2, 6), "radius": 3.5},       # E1, culvert, crawl only
 	{"name": "car", "pos": Vector3(0, 0, -34), "radius": 3.5},          # E3, gate lever
+	{"name": "heli", "pos": Vector3(23, 11.2, -7), "radius": 3.6},      # E2, helipad stair
 ]
 
 const RADIO := {
 	"van": "\"Fine. Get in. Don't tell me the number.\"",
 	"car": "\"Fine. Get in. Don't tell me the number.\"",
+	"heli": "\"Continuity flight's cleared for one. He won't be needing it.\"",
 }
 
 ## Light tiers: [id, x0, x1, y0, y1, z0, z1, tier]. Anywhere not listed is
 ## LIT. Nested volumes come first — the first match wins — so the duct and the
 ## ceiling void can sit inside the roof's and the hall's boxes.
 const TIERS := [
+	["annex_gen", -20, -14, 0, 6, -58, -50, "PITCH"],
+	["annex_crawl", 12, 18, 0, 6, -44, -40, "PITCH"],
+	["annex_hall", -14, 6, 0, 4, -58, -46, "LIT"],
+	["annex_1f", -14, 6, 4, 8, -58, -46, "LIT"],
+	["checkpoint", -10, 4, 0, 6, -46, -40, "LIT"],
+	["annex_yard", -20, 20, 0, 14, -62, -40, "DARK"],
 	["subway", -1.5, 1.5, 0, 3.0, 112, 138, "PITCH"],
 	["app_culvert", -31, -29, 0, 1.2, 112, 138, "PITCH"],
 	["tower_lobby", -24, -14, 0, 3.6, 178, 188, "LIT"],
@@ -64,6 +72,8 @@ const TIERS := [
 ## Wizard in street clothes, free to one who dashes from its edge.
 const HAZARD_BOX := AABB(Vector3(-22, -3.2, -16.5), Vector3(3, 1.7, 5))
 const HAZARD_DPS := 95.0
+## The switch that kills it, on the west run's wall opposite the spur mouth.
+const ISOLATOR_POS := Vector3(-21.7, -1.6, -9.2)
 
 ## The target and where he runs. Paces the hall's lane; on ALARM runs out of
 ## the north-stair door, down, along the north corridor, into G.04.
@@ -84,9 +94,34 @@ const PANIC_DOOR_POS := Vector3(-16, 0, -14)
 ## Reinforcement policy (§5): first ALARM calls R1 + R2, each later one R3;
 ## never more than CAP; a post within MIN_DIST of the player is swapped for R3
 ## so nobody spawns at your back.
-const FIRST_WAVE := ["R1", "R2"]
-const LATER_WAVE := ["R3"]
-const CAP := 3
+const FIRST_WAVE := ["R1", "R2", "R4"]
+## Defensive posts the alarm mans (DefencePlan): [floor point, facing yaw —
+## 0 north, PI south, PI/2 west, -PI/2 east]. Chokepoints on the ways in and
+## the high ground over them, never two within arm's reach of each other.
+const POSTS := [
+	[Vector3(1.2, 0, -7.0), PI],            # lobby, on the portico
+	[Vector3(-6.0, 0, 3.8), PI],            # courtyard, west stack's lee
+	[Vector3(3.0, 0, 3.8), PI],             # courtyard, east stack's lee
+	[Vector3(-17.7, 2.85, 21.0), 0.0],      # podium, over the courtyard
+	[Vector3(-27.3, 3.0, -2.0), -PI / 2.0], # west gantry, over the west yard
+	[Vector3(2.5, 0, -21.0), 0.0],          # north yard, at the gate
+	[Vector3(13.5, 0, -3.0), PI],           # alley mouth
+	[Vector3(25.5, 4.0, -11.0), PI / 2.0],  # gym mezzanine, over the floor
+	[Vector3(19.0, 0, 9.5), PI],            # gym forecourt, on the bin-store gate
+	[Vector3(-5.0, 4.0, -4.5), PI / 2.0],   # 1F south corridor, on the scaffold door
+	[Vector3(6.0, 8.4, -14.5), -PI / 2.0],  # main roof, on the crate stair and duct
+	[Vector3(6.5, 0, -11.0), -PI / 2.0],    # canteen, on the service door
+	[Vector3(-20.5, 0, -4.0), PI / 2.0],    # west corridor, on the west exit
+	# Scoring Annex.
+	[Vector3(12.8, 0, -44.0), PI / 2.0],    # dock nest, over the yard
+	[Vector3(-2.0, 0, -48.5), PI],          # hall, inside the south door
+	[Vector3(4.0, 4.0, -48.3), PI / 2.0],   # 1F corridor, behind the barricade
+	[Vector3(3.0, 4.0, -55.5), PI],         # server room
+	[Vector3(7.5, 4.0, -55.0), PI],         # fire-stair landing
+	[Vector3(-16.0, 0, -49.0), PI],         # generator strip
+]
+const LATER_WAVE := ["R3", "R5"]
+const CAP := 5
 const MIN_DIST := 8.0
 
 ## LOCATE completes on sight of the target, or on reading the records board
@@ -97,17 +132,19 @@ const INTEL_BOXES := [
 ]
 
 ## The approach's PA, one line each as you cross into each stretch — the
-## building clearing its throat, and getting closer.
+## building clearing its throat, and getting closer. Shown as a subtitle
+## (HudSubtitle) under PA_SPEAKER, so it reads as the tannoy, not the game.
+const PA_SPEAKER := "PUBLIC ADDRESS · VANDERMEER INSTITUTE, HOLLOWAY CAMPUS"
 const PA := [
 	[AABB(Vector3(-44, -5, 140), Vector3(88, 45, 31)),
-		"PA — THE Q3 GRATITUDE AUDIT BEGINS SHORTLY.\nRESIDENTS ARE REMINDED THAT LISTENING IS SCORED."],
+		"THE Q3 GRATITUDE AUDIT BEGINS SHORTLY.\nRESIDENTS ARE REMINDED THAT LISTENING IS SCORED."],
 	[AABB(Vector3(-44, -5, 108), Vector3(88, 45, 31)),
-		"PA — DR. VANDERMEER WILL ADDRESS THE HALL AT 21:00.\nAPPLAUSE WILL BE MEASURED."],
+		"DR. VANDERMEER WILL ADDRESS THE HALL AT 21:00.\nAPPLAUSE WILL BE MEASURED."],
 	[AABB(Vector3(-44, -5, 70), Vector3(88, 45, 31)),
-		"PA — A NON-CONSENTING INDIVIDUAL HAS BEEN REPORTED IN THE AREA.\nDO NOT ENGAGE. ENGAGEMENT IS SCORED."],
+		"A NON-CONSENTING INDIVIDUAL HAS BEEN REPORTED IN THE AREA.\nDO NOT ENGAGE. ENGAGEMENT IS SCORED."],
 	[AABB(Vector3(-44, -5, 46), Vector3(88, 45, 20)),
-		"PA — THE GATES ARE CLOSED.\nTHE CAMPUS IS AT FULL GRATITUDE."],
+		"THE GATES ARE CLOSED.\nTHE CAMPUS IS AT FULL GRATITUDE."],
 	[AABB(Vector3(-28, -5, -24), Vector3(56, 45, 48)),
-		"PA — WELCOME TO HOLLOWAY CAMPUS.\nYOUR VISIT HAS BEEN SCORED."],
+		"WELCOME TO HOLLOWAY CAMPUS.\nYOUR VISIT HAS BEEN SCORED."],
 ]
 const LOCATE_RANGE := 40.0

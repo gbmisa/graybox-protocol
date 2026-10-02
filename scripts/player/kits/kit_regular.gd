@@ -10,6 +10,10 @@ extends KitBase
 
 var pistol_cd: float = 0.0
 
+func _on_setup() -> void:
+	player.viewmodel = PlayerViewmodel.new()
+	player.viewmodel.setup(player)
+
 func tick(delta: float) -> void:
 	pistol_cd = maxf(0.0, pistol_cd - delta)
 	if Input.is_action_pressed("attack") and pistol_cd <= 0.0:
@@ -21,7 +25,10 @@ func _fire_pistol() -> void:
 	var mod := LoadoutData.get_mod(player.game.selected_mod)
 	pistol_cd = float(a["cooldown"])
 	var noise := float(mod["noise"])
-	AudioSynth.play(player.game, "pistol", -14.0 if noise <= 0.0 else 0.0)
+	AudioSynth.play(player.game, "pistol", -14.0 if noise <= 0.0 else 0.0,
+		randf_range(0.94, 1.06))
+	player.viewmodel.fire(noise <= 0.0)
+	player.look.add_recoil(0.022 if noise <= 0.0 else 0.034)
 	if noise > 0.0:
 		player.game.emit_noise(player.global_position, noise)
 	_damage_hit(_hitscan(float(a["range"])),
@@ -32,6 +39,7 @@ func hud_lines() -> Array:
 		"LMB: PISTOL (%s)%s" % [
 			String(LoadoutData.get_mod(player.game.selected_mod)["name"]),
 			_cd_text(pistol_cd)],
+		"RMB: AIM",
 		"C: CROUCH / CRAWL",
 		"F: USE",
 	]

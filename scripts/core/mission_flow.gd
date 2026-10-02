@@ -27,11 +27,13 @@ func handle_pause(event: InputEvent) -> void:
 # ------------------------------------------------------------ pre-mission ---
 func show_title() -> void:
 	game.clear_mission()
+	game.set_backdrop(true)
 	_transition(State.TITLE, false)
 	game.screens.show_title()
 
 func show_select() -> void:
 	game.clear_mission()
+	game.set_backdrop(true)
 	_transition(State.SELECT, false)
 	game.screens.show_select()
 
@@ -58,6 +60,7 @@ func deploy() -> void:
 # --------------------------------------------------------------- in-play ---
 func start_mission() -> void:
 	get_tree().paused = false
+	game.set_backdrop(false)
 	game.spawn_mission()
 	game.screens.hide_all()
 	_transition(State.PLAYING, true)
@@ -80,6 +83,10 @@ func restart_mission() -> void:
 func quit_to_select() -> void:
 	get_tree().paused = false
 	show_select()
+
+func quit_to_title() -> void:
+	get_tree().paused = false
+	show_title()
 
 # ------------------------------------------------------------------- end ---
 func win(stats: Dictionary) -> void:

@@ -113,8 +113,6 @@ static func _embankment(root: Node3D) -> void:
 	for x in [-20.0, 0.0, 20.0]:
 		BuildUtils.box(root, Vector3(x, TOP + 0.03, 125), Vector3(4.0, 0.02, 0.2),
 			Color(0.8, 0.8, 0.7), false)
-	BuildUtils.box(root, Vector3(22, TOP + 1.2, 121), Vector3(2.2, 2.4, 5.0),
-		Color(0.25, 0.28, 0.40))                                  # compliance van
 	var tops := [1.15, 2.30, 3.45]
 	for i in 3:
 		var t: float = tops[i]

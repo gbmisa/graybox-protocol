@@ -15,6 +15,8 @@ var game: GrayboxGame
 var box: AABB
 var dps: float = 0.0
 
+var enabled: bool = true
+
 var _pending: float = 0.0
 var _t: float = 0.0
 
@@ -27,8 +29,21 @@ static func create(p_game: GrayboxGame, parent: Node3D, p_box: AABB,
 	parent.add_child(h)
 	return h
 
+## Isolate the water: no more damage, and the glow goes cold.
+func set_enabled(on: bool) -> void:
+	enabled = on
+	_pending = 0.0
+	for l in get_tree().get_nodes_in_group("puddle_lamp"):
+		(l as Light3D).light_color = Color(1.0, 0.2, 0.1) if on else Color(0.2, 0.35, 0.6)
+		(l as Light3D).light_energy = 1.2 if on else 0.35
+	for w in get_tree().get_nodes_in_group("puddle_water"):
+		var m := (w as MeshInstance3D).material_override as StandardMaterial3D
+		m.albedo_color = Color(0.9, 0.12, 0.08) if on else Color(0.08, 0.14, 0.2)
+		m.emission = Color(1.0, 0.15, 0.05) if on else Color(0.05, 0.1, 0.18)
+		m.emission_energy_multiplier = 1.6 if on else 0.25
+
 func _physics_process(delta: float) -> void:
-	if game == null or not game.is_playing():
+	if not enabled or game == null or not game.is_playing():
 		return
 	var p := game.get_player()
 	if p == null or not p.alive:

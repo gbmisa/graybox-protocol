@@ -12,7 +12,19 @@ extends RefCounted
 ## The count is a starting point, tuned by feel — there is no target number.
 
 static func all() -> Array:
-	return approach() + campus()
+	return approach() + campus() + annex()
+
+## The Scoring Annex (sec_annex): a nest on the checkpoint, the dock, the
+## back strip, the 1F corridor, the server room and the roof.
+static func annex() -> Array:
+	return [
+		{"id": "N1", "waypoints": [Vector3(-7, 0, -45.2)], "facing": PI},       # checkpoint nest
+		{"id": "N2", "waypoints": [Vector3(10, 0, -47), Vector3(10, 0, -60)]},  # dock
+		{"id": "N3", "waypoints": [Vector3(-10, 4, -48), Vector3(0, 4, -48)]},  # 1F corridor
+		{"id": "N4", "waypoints": [Vector3(1, 4, -52)], "facing": PI},          # server room
+		{"id": "N5", "waypoints": [Vector3(-4, 8, -48.5)], "facing": PI},       # roof
+		{"id": "N6", "waypoints": [Vector3(-18, 0, -60), Vector3(18, 0, -60)]}, # back strip
+	]
 
 ## The approach (sec_app_*): sparse, each one a thing to get past rather than
 ## a wall — a yard patrol, a sentry staring down the subway, the road deck,
@@ -38,6 +50,7 @@ static func campus() -> Array:
 		{"id": "G7", "waypoints": [Vector3(0, 0, -6)], "facing": PI},             # lobby sentry
 		{"id": "G8", "waypoints": [Vector3(-11, 4, -5), Vector3(-3.5, 4, -5)],
 			"waits": [1.0, 3.0]},                                                 # 1F corridor
+		{"id": "G10", "waypoints": [Vector3(-3.5, 10.4, -15.0)], "facing": PI},  # plant room top
 		{"id": "G9", "waypoints": [Vector3(-11.5, 4, -11)], "facing": -PI / 2.0}, # hall doors
 	]
 
@@ -51,4 +64,8 @@ static func reinforcements() -> Dictionary:
 		"R3": {"id": "R3", "one_way": true, "facing": 0.0, "waypoints": [
 			Vector3(-25, 0, 16), Vector3(-25, 0, -6), Vector3(-20.5, 0, -6),
 			Vector3(-20.5, 0, -8.5)]},
+		# r5: the alarm also fills the courtyard — one at the portico, one
+		# sweeping the rear lane behind the container stacks.
+		"R4": {"id": "R4", "waypoints": [Vector3(-3, 0, 2.5)], "facing": 0.0},
+		"R5": {"id": "R5", "waypoints": [Vector3(-10, 0, 18), Vector3(10, 0, 18)]},
 	}

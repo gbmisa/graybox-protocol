@@ -47,10 +47,10 @@ static func _floor(root: Node3D) -> void:
 	WallUtils.block(root, 2, 4, 0, CEIL, -8, -2, BuildUtils.WALL)
 
 static func _vz(root: Node3D, x: float, z0: float, z1: float, openings: Array) -> void:
-	WallUtils.wall(root, "z", x, z0, z1, 0, CEIL, WALL_T, BuildUtils.WALL, openings)
+	WallUtils.wall(root, "z", x, z0, z1, 0, CEIL, WALL_T, BuildUtils.WALLPAPER, openings)
 
 static func _hx(root: Node3D, z: float, x0: float, x1: float, openings: Array) -> void:
-	WallUtils.wall(root, "x", z, x0, x1, 0, CEIL, WALL_T, BuildUtils.WALL, openings)
+	WallUtils.wall(root, "x", z, x0, x1, 0, CEIL, WALL_T, BuildUtils.WALLPAPER, openings)
 
 static func _walls(root: Node3D) -> void:
 	# Walls along z, west to east.
@@ -74,10 +74,11 @@ static func _walls(root: Node3D) -> void:
 	_hx(root, -8, -13, -3, [WallUtils.door(-8)])                  # toilets door
 	_hx(root, -8, 3, 10, [WallUtils.door(7)])                     # canteen south door
 
-## Floor-to-ceiling shutter across the corridor, stopping 0.6m short of the
-## floor: the Wizard's squeeze into the corridor's north half.
+## Floor-to-ceiling shutter across the corridor, stopping 1.0m short of the
+## floor: a crawl into the corridor's north half. (0.6m was the Wizard's
+## squeeze; the Regular, the only operative now, could not fit it.)
 static func _shutter(root: Node3D) -> void:
-	BuildUtils.box(root, Vector3(-20.5, 2.1, -11), Vector3(3.0, 3.0, WALL_T),
+	BuildUtils.box(root, Vector3(-20.5, 2.3, -11), Vector3(3.0, 2.6, WALL_T),
 		BuildUtils.METAL)
 
 ## Stairs are ramps (CLAUDE.md): 2.4 wide, 8 treads, rise/run under 0.9.

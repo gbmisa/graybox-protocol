@@ -210,3 +210,197 @@ overbridge stair).
 *Next:* walk it. Unverified by play: every mantle step (all rises <= 1.15), the 3m jump
 from the overbridge to the wall top. The wall top now links to the gatehouse roof, so the
 avenue (E3) is reachable without the lever — legal shortcut or seal it, Gregory's call.
+
+**Past-graybox pass · Opus** — Gregory played the verticality build: "a lot better but it
+feels very empty"; asked for a real game menu, a hand holding a gun with recoil, free
+assets (Kenney; "Gamemaster" turned out to be Gamemaster Audio, which is paid — drop-in
+hook instead), and fixes by room ID.
+- *Assets (all CC0, `ASSETS.md`):* Kenney car / city ×3 / retro urban / survival / furniture
+  / blaster kits, interface + impact + sci-fi sounds, fonts; WRAD ARMS (wriks); Poly Haven
+  textures. `Surfaces` maps every palette colour to a triplanar photo texture (brick walls,
+  asphalt, worn concrete, steel plate, plywood); `Props` places models bottom-centred with
+  one box collider. `sec_props_approach/_campus/_interior` dress every stretch, clear of
+  every patrol lane; `sec_skyline` rings the level with lit towers and red beacons.
+- *Viewmodel:* WRAD arm posed round Kenney blaster-a in Blender (script fits the grip into
+  the curled fingers), baked to one GLB with the eye at the origin. `viewmodel.gd`: kick
+  back + barrel climb about the grip, muzzle flash (light + additive radial quad), mouse
+  sway, stride bob, own visual layer and fill light. `look.add_recoil` punches the head
+  node. Footsteps (`footsteps.gd`, Kenney concrete). Kit HUD lines moved bottom-left.
+- *Menu:* live `MenuBackdrop` (the level at night, slow camera shots, fades), main menu
+  (NEW GAME / MISSIONS / OPTIONS / CREDITS / QUIT, consent-score ticker), OPTIONS persisted
+  via `Settings` (volume, sensitivity, FOV, invert Y, bob, fullscreen, vsync, room tags),
+  CREDITS, pause menu with OPTIONS and QUIT TO MAIN MENU. `UiTheme`: Kenney Future for
+  headings/buttons, engine font for paragraphs. Screens on canvas layer 10, over the HUD.
+- *Feedback fixes:* **H03/H04** pipe bridge now continues — gantry over the back yards and
+  a stair onto the east terrace roof, so it is one rooftop route ring road → terraces →
+  overbridge → wall top. **Billboard area** — maintenance scaffold (3 flights) to a catwalk
+  *behind* the board overlooking the courtyard, a third way onto the wall; verge dressed
+  with the audit guests' cars. **C19** portico read as roofless: its slab was the night
+  sky's colour — textured and lit now. **G13** void dressed as an atrium (banner, lamp).
+  **G12** "something sticking out of the wall" was the west stair's ramp box poking 0.75m
+  through — all ramps are now `RampBuilder` wedges. **Exit/helipad** — steel stair from the
+  gym roof to the deck and a box-built continuity helicopter (rotor, blinking beacon,
+  engine drone) = extraction E2 "heli"; van and car are Kenney models with idling engines
+  and headlights. **Words popping up** — PA lines are now subtitles tagged "PUBLIC ADDRESS ·
+  VANDERMEER INSTITUTE", with a chime; every wall sign has a backing board.
+- *Audio:* `AudioSynth` resolves a name to `assets/audio/sfx/<name>.ogg|wav` (drop-ins,
+  e.g. bought Gamemaster packs), then Kenney samples, then the synth; new synthesized
+  suppressed shot.
+*Broke:* MERIDIAN's "target spawn" headroom probe hit the target's own capsule once he had
+shuffled 2cm — the probes now exclude CharacterBody3Ds. Otherwise nothing: import clean,
+all three smoketests 0. Added 10 points and 4 lines (gantry, scaffold, catwalk, helipad
+stair, G12 ceiling line).
+*Next:* Gregory plays it. Grappling hook is his stated next tool (later levels; Cruelty
+Squad grappendix / lighter Spider-Man) — design note in NEXT-SESSION.
+
+**Playtest fixes · Sonnet** — Gregory played the past-graybox build.
+- *Vehicles:* the box colliders matched the models exactly — the models were just 2.1-2.6m
+  tall (scaled 1.6x), above the 1.84m jump apex, and one box fills a truck's low cab.
+  `Props.vehicle()` now caps the roof at 1.5m and builds collision from the mesh itself
+  (trimesh); tests assert every parked model's roof is 0.9-1.6m. Trees collide on the trunk
+  only (one box over the whole canopy had walled off the deck-access stair) and the tree
+  at the stair foot moved; a line test keeps the foot clear.
+- *Floating windows:* the skyline's fake lit-window boxes were cut (the Kenney towers carry
+  their own).
+- *G13 / "a door to nothing":* the 1F south corridor stopped at the lobby void and resumed
+  5m on — a Wizard dash showcase. Bridged with a railed 1.6m catwalk (`_lobby_catwalk`),
+  atrium kept. If the door he meant is elsewhere he'll quote an ID.
+- *Bob / footsteps:* 11 bob cycles a second at walk speed (1.6/m x 7 m/s) -> both now share
+  `PlayerFootsteps.STRIDE` = 3.5m, a footfall every half second.
+- *Alarm:* previously silent (doors locked, reinforcements spawned, nothing to perceive).
+  `Atmosphere` adds a looping siren, red ambient pulse, flashing HUD banner and a PA line.
+- *Light tiers:* `Atmosphere` also eases ambient light by the tier under the player
+  (LIT 1.0 / DARK 0.28 / PITCH 0.05 of the level's ambient) — visible, still no HUD gauge.
+*Broke:* nothing — all three smoketests 0 (+8 vehicle, 2 stair-foot, 1 lobby-bridge cases).
+
+**Alarm stations + aimed pistol · Sonnet** — Gregory: the alarm must not fire the instant a
+guard is hit ("the point of the game is not entire stealth"); a guard has to go to an alarm
+station; the siren must come from the siren, not the player character; point the pistol at
+the crosshair.
+- *Alarm:* an ALERT guard (spotted you, was hit, or heard loud noise within 12m) now sets
+  `alarm_run`; `GuardBrain._run_to_station` takes him at 1.1x chase speed to the nearest
+  `AlarmStation` on his floor within 50m, no shooting on the way, and he presses it — that
+  raises the alarm. Kill him first and nothing happens. 15s timeout, then he fights.
+  12 red posts (`sec_alarm.gd`, "REPORT AN EVENT (REPORTS ARE SCORED)") stand off the
+  patrol lanes. A level with no stations (MERIDIAN) keeps alert = alarm.
+- *Siren:* 9 `AlarmSiren` horns (tower, road deck, roofs, gatehouse) play the wail as
+  `AudioStreamPlayer3D` from where they are mounted, lamps pulsing. The 2D player is gone.
+  `AudioSynth.play_at` (3D) now carries guard aim/shot/shout and target hurt, so guard
+  sounds also come from the guard.
+- *Pistol:* `viewmodel.gd` solves the rest rotation so rear sight -> muzzle runs through the
+  point 20m dead ahead; measured 0.01 degrees / 3mm off the crosshair at 20m.
+*Tests:* stations exist, a hit guard does not raise the alarm and is sent running, reaching
+a station does. All three suites 0.
+
+**Playtest round 3 · Sonnet** — witnesses, energised water, crawl sizes, canteen, gun.
+- *Witnesses:* `GrayboxGame._witness_death` — a guard with a clear line to a colleague who
+  drops (<=24m; one facing away only within 6m) goes suspicious at the body with his meter at
+  0.9, so one glimpse of the player finishes it.
+- *Energised water:* new WATER ISOLATOR switch on the west run's wall straight ahead of the
+  spur mouth (before the puddle); `Hazard.set_enabled(false)` stops the damage and turns the
+  glow cold blue. The 0.6m squeeze past the puddle was the Wizard's and the Regular (crouch
+  0.85) couldn't enter it — now a 1.0m crawl; the west corridor's shutter gap likewise.
+  Tests: points are "crawl", plus a hazard-toggle case.
+- *Canteen:* mid-room tables walled off the kitchen door. Tables now sit on the east wall's
+  corners, off all five doorways. `smoketest_compound` probes every door at knee height too
+  (0.35m) — the 0.9m probes passed over 0.66m tables.
+- *Viewmodel rendering:* now its own SubViewport + Camera3D (FOV 55, near 0.03) on a
+  CanvasLayer under the HUD, staged at y=4000; world camera culls the layer. Fixes the
+  stretched-diagonal look of a gun 15cm from an 80-degree lens, and wall clipping. Barrel
+  axis is measured from the suppressor mesh and aimed at the point 20m ahead; muzzle flash
+  also lights the world through a light on the player camera.
+
+**Playtest round 4 · Sonnet** — walked through a wall; ceiling; gun.
+- *Through the wall:* `PlayerMantle` treated the main block's 0.3m east wall as a thin ledge
+  (and, in the vault branch, a fence): standing on a crate and jumping at it put you on the
+  floor behind it — ground floor or F10 (4.0) depending on the crate. Found by sweeping
+  `_find_ledge` over every crate, the bridge roof and the alley (354 of 1962 samples
+  crossed the wall). New rule `_wall_continues`: a ledge or fence only counts if nothing
+  solid sits within 0.85m above its lip (parapets are 0.6, so roof climbs still work).
+  Re-sweep: 0 crossings. Systems test `_check_wall_not_vaulted` keeps it that way.
+- *Lobby:* the 1F corridor over the lobby is a full slab again (the lobby is a normal 3.6m
+  room) — not a void, not a catwalk.
+- *Gun:* the black override material made the pistol a flat cut-out; Kenney's own colours
+  are back, the stage has its own ambient + key/fill lights (`viewmodel.gd`). The hand was
+  "mangled" because my Blender script scaled the gun AFTER translating it to the grip, so
+  the fist sat ~2x the grip offset away, and because this bullpup blaster's real grip is
+  the black handle at the front, not the rear box. Re-fit, re-exported
+  (`viewmodel_pistol.glb`); `GRIP` is the fist centre written out by the fit script.
+
+**Playtest round 5 · Sonnet** — small cars, loud alarm, floaty jump, cone; alarm does
+nothing, guards hit walls; "guards unmodeled, civilians, Cruelty Squad, too open".
+- *Feel:* vehicle scale cap 1.75 (roofs ≤1.58); siren quieter/lower/shorter range;
+  `PLAYER_GRAVITY` 24 with 1.35x fall, `jump_v` 9.2/11.7 to keep apex 1.84/2.85; removed
+  `car/cone-flat`.
+- *Navigation:* `GuardNav` (navmesh baked from static colliders; agent r 0.4, cell 0.2,
+  ~0.45s) + `NavWalker`; doors rebake async. Alerted guards without LOS keep pathing.
+  The 0.5m radius first tried left the barrier-blocked fence gap (1.0m each side) unusable.
+- *Alarm:* guards converge on the player (suspicious, meter 0.6); R4/R5 added, cap 5.
+- *People:* `Humanoid` rig for guards/target/civilians; `Civilian` (20, panic that
+  spreads, killable, no penalty); `Gore` bursts + stains. Tests: `smoketest_civilians`.
+- *Level:* `SecCmpLanes` (estate zigzag walls + courtyard container stacks and catwalk).
+- Handoff to Opus 5.5: `docs/HANDOFF-opus-r5.md`.
+
+**Playtest round 6 · Opus** — stuck in C08 avenue / U01 basement; alarm reset; guards
+froze when shot; pistol angle + hand; aim down sights.
+- *Soft-locks:* rubble stair inside the avenue at x 6-8 back onto the wall (1.0m steps);
+  the boiler-house door is a `RemoteDoor` with a DOOR RELEASE switch inside (exit only).
+- *Alarm:* hold F on any station's panel while the alarm is up to silence it
+  (`AlarmReset`, 1.2s, 6m noise); `AlertState.stand_down()` shared with the decay.
+- *Guards:* reproduced (`smoketest_guard_stuck`, 31 frozen guards over three spots) and
+  fixed: sight/shot rays hit colleagues, so a squad "lost" the player at arm's length and
+  pushed into one clump; head box 2.11 vs navmesh agent 1.8 wedged them under the 2.0
+  portico roof (raised to 2.3); nav map cell size != mesh cell size (edges unjoined);
+  `NavWalker.steer` adds separation + sidestep-when-stuck; strafing checks for room;
+  investigators stop short when a colleague holds the spot. Now 0 frozen.
+- *Viewmodel:* the hand was mangled because WRAD fingers curl on NEGATIVE X — both earlier
+  fits bent them backwards. New hand-first fit (`tools/blender/viewmodel_fit.py`): fist
+  closed round the black grip, gun yawed/canted 12 degrees so its flank shows, magazine
+  dropped (the forearm runs where it sat). Rest pose = identity; no runtime re-aim.
+  RMB = aim down sights (sight line to screen centre, FOV x0.72, sensitivity scaled).
+- *Verticality (r6, `sec_cmp_vertical.gd`):* car-park deck over the avenue (3.0, ramp,
+  cars under it; replaces the rubble stair), west gantry along the compound wall (3.0,
+  stairs both ends, over G3's lane), courtyard podium (2.85, stair, crouch wall, benches
+  under), plant-room top + water-tank plinth on the main roof (10.4 / 11.55) with sentry
+  G10. Each tops out one mantle under the wall top / next perch (systems test
+  `_check_vertical`). Room tags C23-C25, R04-R05. Trees, a pole and clutter moved off
+  the new footprints; civilian spot moved off the podium stair.
+- *Alarm = defence (r6b):* "guards still bunching ... they rush to the alarm; should go
+  to defensible positions". `_converge` is gone. One runner per alarm station (claimed);
+  on alarm `DefencePlan` sends the guard nearest the player to search and the rest to the
+  nearest free of 13 `POSTS` (chokepoints + the new high levels); sentries hold their
+  own, G9 the panic-room door, overflow holds where it stands. `GuardBrain._hold`: fight
+  within 5m of the post, fall back after 2.5s unseen, stand down after 20s. NavWalker
+  reaches corners at 0.35 (0.6 cut doorway jambs) and sidesteps to the free side.
+  `smoketest_guard_stuck` now also fails on any 3 guards within 2.5m and checks every
+  post is walkable: 0 clumps, 18-19 guards on posts per alarm.
+
+**Round 6c, overnight · Opus** — "new defensive areas, more complex, a secondary objective
+and area"; "an area with platforming"; "graphics like a real game, original, trippy";
+"an opening visual-novel cinematic".
+- *Scoring Annex (`sec_annex`):* new walled area north of the avenue (the old north
+  boundary now has a checkpoint gap and a 1.0m crawl under the car-park deck). Two-storey
+  building: hall with racks, ramp, office, corridor with a desk barricade, server room
+  with three doors, fire stair to the roof. Checkpoint chicane + floodlit sandbag nest,
+  dock containers + a nest facing away from the crawl, generator strip. Guards N1-N6, 3
+  alarm stations, 6 new defensive POSTS (DefencePlan now only sends a guard to a post he
+  can walk to). Skyline pushed north 24m to make room. Room tags N01-N13.
+- *Secondary objective:* hold F on the SCORE SERVER (3s, loud) — billboard reads ERR, PA
+  line, HUD's OPTIONAL line updates, end screen reports it. Systems test covers it.
+- *Crane run (`sec_crane_run`):* deck crates -> catwalk on the annex wall (6.0) -> hung
+  pallets -> a sliding crane pallet -> container stack -> pole pallet -> pallets -> annex
+  roof behind N5. Mantles in the systems test; the jumps are PLAYED by
+  `smoketest_jumps` (real input, real physics). Plant units on the main roof as a hop
+  circuit.
+- *Look:* screen shader (dithered banding, edge fringe, acid shadows, warp, grain;
+  alarm/hurt push it), shader sky (violet/acid, drifting bands, haloed moon), filmic +
+  bloom + SSAO + volumetric haze; neon trims and signs; posters/graffiti/wallpaper/
+  terrazzo/faces generated by our own script; guards and civilians have drawn faces; the
+  courtyard mast is an eye that follows you, CCTV cameras track you; CONSENTO mascot
+  statues (Blender metaballs). Kenney's unshaded tree/lamp materials now take light.
+- *Opening:* `ScreenIntro`, OPENING on the title menu. First-pass 2D visual novel (flat,
+  VR helmet; the hot-dog ad; the come-on ad; the street of parody burger boards and a
+  courier doing tech support on a moped; title). Kept as satire of the ads and the gig
+  economy, not of the courier's ethnicity; parody brand, not the real logo.
+*Tests:* all seven suites 0 (smoketest, _compound, _compound_systems, _nav, _civilians,
+_guard_stuck incl. an annex spot, _jumps).

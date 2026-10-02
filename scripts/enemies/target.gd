@@ -19,6 +19,7 @@ var wp_index: int = 0
 var fleeing: bool = false
 
 var _marker: MeshInstance3D = null
+var _figure: Humanoid = null
 var _head_col: CollisionShape3D = null
 
 
@@ -41,15 +42,11 @@ func flee(path: Array) -> void:
 
 
 func _ready() -> void:
-	# Suit: dark-gray box centered at y ~0.95
-	var suit := _make_box(Vector3(0.7, 1.7, 0.4), Color(0.15, 0.15, 0.15), 0.95)
-	add_child(suit)
-	# Head (tan/light skin)
-	var head := _make_box(Vector3(0.4, 0.35, 0.35), Color(0.85, 0.7, 0.6), 1.95)
-	add_child(head)
-	# Arms (dark suit sleeves)
-	add_child(_make_box(Vector3(0.25, 0.6, 0.25), Color(0.10, 0.10, 0.10), 1.3))
-	add_child(_make_box(Vector3(0.25, 0.6, 0.25), Color(0.10, 0.10, 0.10), 1.3))
+	_figure = Humanoid.create(self, {
+		"skin": Color(0.88, 0.72, 0.62), "top": Color(0.10, 0.10, 0.12),
+		"bottom": Color(0.07, 0.07, 0.09), "accent": Color(0.85, 0.05, 0.10),
+		"visor": Color(0.9, 0.9, 0.9), "bulk": 1.25, "scale": 1.04,
+	})
 	# Red "TARGET" label above the head
 	var label := Label3D.new()
 	label.text = "TARGET"
@@ -119,6 +116,8 @@ func _physics_process(delta: float) -> void:
 		velocity.z = 0.0
 
 	move_and_slide()
+	if _figure != null:
+		_figure.animate(Vector2(velocity.x, velocity.z).length(), delta)
 
 
 func _process(delta: float) -> void:
@@ -168,6 +167,9 @@ func take_damage(dmg: float, from_pos: Vector3) -> void:
 		# Tip over, notify the game, keep the body briefly, then remove.
 		collision_layer = 0
 		collision_mask = 0
+		Gore.burst(get_parent() as Node3D, global_position + Vector3(0, 1.2, 0),
+			global_position - Vector3(0, 0.3, 0), 30)
+		Gore.stain(get_parent() as Node3D, global_position, 1.4)
 		var tween := create_tween()
 		tween.tween_property(self, "rotation:x", -PI / 2.0, 0.4)
 		game.on_target_killed()
@@ -175,5 +177,6 @@ func take_damage(dmg: float, from_pos: Vector3) -> void:
 		await get_tree().create_timer(2.0).timeout
 		queue_free()
 	else:
+		Gore.burst(get_parent() as Node3D, global_position + Vector3(0, 1.4, 0), from_pos, 8)
 		# VIP is unarmed: no retaliation, just a hurt sound.
-		AudioSynth.play(self, "hurt")
+		AudioSynth.play_at(self, "hurt")

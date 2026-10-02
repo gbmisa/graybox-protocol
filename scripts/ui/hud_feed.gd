@@ -10,9 +10,13 @@ extends HudPanel
 const KILLFEED_LIFETIME := 4.0
 
 var _objective: Label
+var _secondary: Label
 var _killfeed: VBoxContainer
 var _message: Label
 var _message_timer: float = 0.0
+var _alarm: Label
+var _alarm_on: bool = false
+var _alarm_t: float = 0.0
 
 func build(root: Control) -> void:
 	_objective = make_label("ASSASSINATE THE TARGET", 20, GOLD,
@@ -21,6 +25,11 @@ func build(root: Control) -> void:
 	_objective.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_objective.position.y = 18
 	root.add_child(_objective)
+	_secondary = make_label("", 14, Color(0.85, 0.85, 0.75), HORIZONTAL_ALIGNMENT_CENTER)
+	_secondary.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_secondary.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_secondary.position.y = 46
+	root.add_child(_secondary)
 	_killfeed = VBoxContainer.new()
 	_killfeed.add_theme_constant_override("separation", 4)
 	_killfeed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -34,8 +43,16 @@ func build(root: Control) -> void:
 	_message.position.y = 160
 	_message.visible = false
 	root.add_child(_message)
+	_alarm = make_label("▲ ALARM — LOCKDOWN ▲", 22, RED, HORIZONTAL_ALIGNMENT_CENTER)
+	_alarm.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_alarm.position = Vector2(16, 16)
+	_alarm.visible = false
+	root.add_child(_alarm)
 
 func tick(delta: float) -> void:
+	if _alarm_on:
+		_alarm_t += delta
+		_alarm.modulate.a = 0.45 + 0.55 * (0.5 + 0.5 * sin(_alarm_t * TAU * 1.1))
 	if _message_timer > 0.0:
 		_message_timer -= delta
 		if _message_timer <= 0.0:
@@ -44,6 +61,14 @@ func tick(delta: float) -> void:
 # ------------------------------------------------------------ public API ---
 func set_objective(text: String) -> void:
 	_objective.text = text
+
+func set_secondary(text: String) -> void:
+	_secondary.text = text
+	_secondary.visible = not text.is_empty()
+
+func set_alarm(on: bool) -> void:
+	_alarm_on = on
+	_alarm.visible = on
 
 func show_message(text: String, dur: float) -> void:
 	_message.text = text

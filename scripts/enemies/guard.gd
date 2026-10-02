@@ -30,6 +30,11 @@ var has_facing: bool = false
 var facing: float = 0.0
 var waits: Array = []
 var one_way: bool = false
+## Heading for an alarm station (see GrayboxGame.guard_alerted / GuardBrain).
+var alarm_run: bool = false
+## A defensive post from the alarm (DefencePlan); INF when he has none.
+var hold_pos: Vector3 = Vector3.INF
+var hold_yaw: float = 0.0
 var last_seen: Vector3 = Vector3.ZERO
 var investigate_pos: Vector3 = Vector3.ZERO
 var knockback_vel: Vector3 = Vector3.ZERO
@@ -57,6 +62,19 @@ func setup(p_waypoints: Array, p_game: GrayboxGame, opts: Dictionary = {}) -> vo
 ## Pause at waypoint `i` before moving on; 1.0s unless the post says.
 func wait_at(i: int) -> float:
 	return float(waits[i]) if i < waits.size() else 1.0
+
+## Take and hold a defensive post: walk there, face `yaw`, stay. An alerted
+## guard keeps fighting and falls back to it (GuardBrain._hold).
+func hold(pos: Vector3, yaw: float) -> void:
+	hold_pos = pos
+	hold_yaw = yaw
+	waypoints = [pos]
+	one_way = true
+	has_facing = true
+	facing = yaw
+	brain.reset_route()
+	if state != State.ALERT:
+		enter_patrol()
 
 ## Hand the guard a new route mid-mission — the panic-room escort.
 func set_route(points: Array, p_one_way: bool, yaw: float) -> void:
@@ -102,6 +120,14 @@ func hear_noise(pos: Vector3) -> void:
 		return
 	enter_suspicious(pos, maxf(detect, 0.5))
 
+## A colleague dropped in view. Go and look, already half-sure something is
+## wrong (the meter is nearly full); a glimpse of the killer finishes it.
+func witness_death(at: Vector3) -> void:
+	if not alive or state == State.ALERT:
+		return
+	enter_suspicious(at, 0.9)
+	bark("suspicious")
+
 ## A hitscan hit, with the collider shape it struck: the head takes
 ## `headshot_mul`. Area damage (fireball, meteor, slam) uses take_damage.
 func take_hit(dmg: float, from_pos: Vector3, hit: Dictionary) -> void:
@@ -119,6 +145,7 @@ func take_damage(dmg: float, from_pos: Vector3) -> void:
 		return
 	hp -= dmg
 	body.flash_hit()
+	Gore.burst(get_parent() as Node3D, global_position + Vector3(0, 1.4, 0), from_pos, 8)
 	if hp <= 0.0:
 		_die()
 		return
@@ -137,8 +164,11 @@ func enter_alert() -> void:
 	brain.on_enter_alert()
 	body.set_indicator("!", Color.RED)
 	bark("alert")
-	game.alarm()
-	AudioSynth.play(self, "alarm")
+	game.guard_alerted(self)
+	if game.alert.is_alarm() and hold_pos == Vector3.INF and game.mission != null \
+			and game.mission.has_method("post_guard"):
+		game.mission.post_guard(self)
+	AudioSynth.play_at(self, "alarm", -4.0, 1.0, 50.0)
 
 func enter_suspicious(pos: Vector3, meter: float) -> void:
 	if state != State.SUSPICIOUS and randf() < 0.6:
@@ -165,17 +195,23 @@ func _die() -> void:
 	game.on_guard_killed(self)
 	collision_layer = 0
 	collision_mask = 0
+	Gore.burst(get_parent() as Node3D, global_position + Vector3(0, 1.2, 0),
+		global_position - Vector3(0, 0.3, 0), 30)
+	Gore.stain(get_parent() as Node3D, global_position, 1.4)
 	body.play_death()
 
 # ---------------------------------------------------------------- helpers ---
-## Walk toward a point and face the direction of travel.
+## Walk toward a point (along the navmesh, round walls) and face the
+## direction of travel.
+var _walker := NavWalker.new()
+
 func move_to(target: Vector3, speed: float, delta: float) -> void:
-	var dir := target - global_position
-	dir.y = 0.0
-	if dir.length() < 0.05:
+	var flat := target - global_position
+	flat.y = 0.0
+	if flat.length() < 0.05:
 		stop()
 		return
-	dir = dir.normalized()
+	var dir := _walker.steer(self, target, speed, delta, game.guards)
 	velocity.x = dir.x * speed
 	velocity.z = dir.z * speed
 	face(atan2(-dir.x, -dir.z), delta)
@@ -190,9 +226,17 @@ func face(yaw: float, delta: float) -> void:
 ## Line-of-sight helper. Pass the target's RID in `also_exclude` when asking
 ## "is anything BETWEEN us" — otherwise the ray ends inside the target's own
 ## capsule, reports a hit, and every sight check fails.
+## Colleagues never block a guard's sight or shot: they all sit on the world
+## layer, and with one in the way a whole squad "lost" the player at arm's
+## length and stood in a clump pushing toward him (playtest, 2026-10-01).
 func ray(from: Vector3, to: Vector3, also_exclude: Array = []) -> Dictionary:
 	var q := PhysicsRayQueryParameters3D.create(from, to)
-	q.exclude = [get_rid()] + also_exclude
+	var ex: Array[RID] = [get_rid()]
+	for g in game.guards:
+		ex.append((g as Guard).get_rid())
+	for r in also_exclude:
+		ex.append(r)
+	q.exclude = ex
 	# Shot mask: guards see and shoot through the barred window's rods.
 	q.collision_mask = VerbData.SHOT_MASK
 	return get_world_3d().direct_space_state.intersect_ray(q)

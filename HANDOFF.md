@@ -1,7 +1,11 @@
 # Graybox Protocol — Handoff Document
 
-**Status (2026-09-30):** Level one, **HOLLOWAY ROAD**, is built and playable (title screen →
-HOLLOWAY ROAD). Regular only, base kit, no lockpicks: a long approach through an estate, a
+**Status (2026-10-01):** past-graybox pass plus four rounds of playtest fixes — real main
+menu, first-person hand + pistol (own SubViewport camera), CC0 textures/props/skyline,
+alarm stations + 3D sirens, helipad exit, wall-vault bug fixed. **All uncommitted.**
+Read `docs/NEXT-SESSION.md` first.
+
+**Earlier status:** Level one, **HOLLOWAY ROAD**, is built and playable (main menu → NEW GAME). Regular only, base kit, no lockpicks: a long approach through an estate, a
 ring road, a canal and terrace backs to a floodlit school, then several ways into the
 assembly hall. See `docs/BUILD-LOG.md` (last entry) and the header of
 `scripts/world/level_compound.gd`. Needs a blind playtest. The notes below on MERIDIAN

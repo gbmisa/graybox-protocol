@@ -16,8 +16,10 @@ const D := preload("res://scripts/data/mission_compound_data.gd")
 
 var game: GrayboxGame
 var panic_door: RemoteDoor
+var boiler_door: RemoteDoor
 var gate: RemoteDoor
 var csd: Array = []
+var hazard: Hazard
 var located: bool = false
 
 var _spawned: Array = []
@@ -38,9 +40,10 @@ func _build(root: Node3D) -> void:
 	_entries(root)
 	_inner_doors(root)
 	_switches(root)
+	SecondaryScore.create(game, root)
 	for e in D.EXTRACTIONS:
 		BuildUtils.zone(root, game, String(e["name"]), e["pos"], float(e["radius"]))
-	Hazard.create(game, root, D.HAZARD_BOX, D.HAZARD_DPS)
+	hazard = Hazard.create(game, root, D.HAZARD_BOX, D.HAZARD_DPS)
 	var t := Target.new()
 	root.add_child(t)
 	t.setup(game, D.TARGET_LANE[0], D.TARGET_LANE.duplicate())
@@ -57,6 +60,8 @@ func _entries(root: Node3D) -> void:
 func _inner_doors(root: Node3D) -> void:
 	panic_door = RemoteDoor.create(game, root, "CONTINUITY SUITE G.04",
 		Vector3(-16, 1.2, -14), Vector3(1.6, 2.4, 0.2), false)
+	boiler_door = RemoteDoor.create(game, root, "BOILER HOUSE DOOR",
+		Vector3(-34, 1.2, -13), Vector3(0.2, 2.4, 1.4), false)
 	_barred_window(root)
 	csd = [
 		RemoteDoor.create(game, root, "SECURITY DOOR", Vector3(0, 1.2, -11),
@@ -81,13 +86,23 @@ func _barred_window(root: Node3D) -> void:
 		root.add_child(rod)
 		BuildUtils.box(rod, Vector3.ZERO, shape.size, BuildUtils.METAL, false)
 
+## The energised water's isolator, on the run's west wall straight ahead as you
+## come in from the spur — before the puddle, not past it.
 func _switches(root: Node3D) -> void:
+	Switch.create(game, root, "WATER ISOLATOR", D.ISOLATOR_POS,
+		Vector3(0.2, 0.6, 0.5), _puddle_off)
 	Switch.create(game, root, "MAST ISOLATOR", Vector3(-16.5, 1.4, -10.75),
 		Vector3(0.7, 0.7, 0.2), _mast_off)
 	Switch.create(game, root, "DOOR RELEASE", Vector3(-14.8, 1.3, -14.25),
 		Vector3(0.5, 0.5, 0.2), func() -> void: panic_door.release())
+	Switch.create(game, root, "DOOR RELEASE", Vector3(-33.7, 1.3, -11.8),
+		Vector3(0.2, 0.5, 0.4), func() -> void: boiler_door.release())
 	Switch.create(game, root, "GATE LEVER", Vector3(-8.7, 1.2, -27.5),
 		Vector3(0.2, 0.6, 0.4), func() -> void: gate.release())
+
+func _puddle_off() -> void:
+	hazard.set_enabled(false)
+	game.hud.add_killfeed("Water isolated — the undercroft is safe to wade")
 
 ## Courtyard disc goes DARK — tier swapped, not deleted — and the mast dies.
 func _mast_off() -> void:
@@ -108,7 +123,18 @@ func on_alarm(count: int, _reason: String) -> void:
 	var g9 := _guard("G9")
 	if g9 != null and g9.state != Guard.State.ALERT:
 		g9.set_route(D.ESCORT_PATH.duplicate(), true, PI)
+	if g9 != null:
+		# His post is the panic-room door; he fights from there, not after you.
+		g9.hold_pos = D.ESCORT_PATH[D.ESCORT_PATH.size() - 1]
+		g9.hold_yaw = PI
 	_reinforce(D.FIRST_WAVE if count == 1 else D.LATER_WAVE)
+	var n := DefencePlan.man(game, D.POSTS, ["G9"])
+	if n > 0:
+		game.hud.add_killfeed("Guards taking defensive positions")
+
+## A guard alerted while the alarm is already up takes a post too.
+func post_guard(g: Guard) -> void:
+	DefencePlan.post_one(game, D.POSTS, g)
 
 func on_calm() -> void:
 	pass
@@ -169,8 +195,7 @@ func _check_pa() -> void:
 			continue
 		if (D.PA[i][0] as AABB).has_point(p.global_position + Vector3(0, 1, 0)):
 			_pa_done.append(i)
-			game.hud.show_message(String(D.PA[i][1]), 5.5)
-			AudioSynth.play(game, "win", -16.0)
+			game.hud.say(D.PA_SPEAKER, String(D.PA[i][1]))
 			return
 
 ## The target and his escort walk through G.04's door without opening it.

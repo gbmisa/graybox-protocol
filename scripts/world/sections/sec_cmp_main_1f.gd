@@ -19,6 +19,8 @@ extends RefCounted
 ##                                              escape door west, door east
 ##                                              onto the west landing (z -9.5)
 ##
+## The lobby void is closed by a full slab: the lobby is a normal 3.6m room.
+##
 ## Shafts with no floor: the north stair (x [-13,-10] z [-18.5,-14]), the west
 ## stair (x [-19,-13] z [-8,-2]), the east stair (x [4,10] z [-6,-2]) and the
 ## lobby void (x [-3,2] z [-8,-2]). Each gets a wall wherever a floor would
@@ -50,12 +52,16 @@ static func _floors(root: Node3D) -> void:
 	BuildUtils.plate(root, 2, 4, -6, -2, FLOOR_Y, SLAB_T, c)          # east shelf
 	# Cantilevered plate behind the south window, over the void (N3).
 	BuildUtils.plate(root, -0.5, 0.5, -3.2, -2, FLOOR_Y, 0.3, c)
+	# The south corridor's floor runs unbroken across the lobby: this slab is the
+	# lobby's ceiling seen from below and the corridor floor from above. (It was
+	# a void, then a railed catwalk — "a bridge instead of a plane".)
+	BuildUtils.plate(root, -3, 2, -8, -2, FLOOR_Y, SLAB_T, c)
 
 static func _vz(root: Node3D, x: float, z0: float, z1: float, openings: Array) -> void:
-	WallUtils.wall(root, "z", x, z0, z1, FLOOR_Y, TOP, WALL_T, BuildUtils.WALL, openings)
+	WallUtils.wall(root, "z", x, z0, z1, FLOOR_Y, TOP, WALL_T, BuildUtils.WALLPAPER, openings)
 
 static func _hx(root: Node3D, z: float, x0: float, x1: float, openings: Array) -> void:
-	WallUtils.wall(root, "x", z, x0, x1, FLOOR_Y, TOP, WALL_T, BuildUtils.WALL, openings)
+	WallUtils.wall(root, "x", z, x0, x1, FLOOR_Y, TOP, WALL_T, BuildUtils.WALLPAPER, openings)
 
 ## Gallery: a 1.0m step up from the hall floor (a mantle for everyone), solid
 ## underneath. Walls run past the ceiling to 8.0, which is what closes the

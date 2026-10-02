@@ -3,9 +3,10 @@ extends Node
 ## The building's alarm (F2): CALM or ALARM, level-wide, on top of each
 ## guard's own patrol -> suspicious -> alert.
 ##
-## ALARM is raised by any guard reaching full detection, by a loud noise
-## (radius >= 25) with a guard within 12m of it, or by a level event (Chad's
-## wall). What an ALARM *does* is the level's business: GrayboxGame.mission,
+## ALARM is raised by an alerted guard pressing an alarm station (a guard
+## reaching full detection, being hit, or hearing loud noise within 12m only
+## alerts him — see GrayboxGame.guard_alerted), or by a level event (Chad's
+## wall). A level with no stations raises it the moment a guard is alerted. What an ALARM *does* is the level's business: GrayboxGame.mission,
 ## if it has `on_alarm(count, reason)`, gets the call — target flight,
 ## lockdown, reinforcements. A level with no mission (MERIDIAN) just counts.
 ##
@@ -30,6 +31,8 @@ func setup(p_game: GrayboxGame) -> void:
 	game = p_game
 
 func reset() -> void:
+	if game != null and game.hud != null:
+		game.hud.set_alarm(false)
 	level = Level.CALM
 	count = 0
 	_since_seen = 0.0
@@ -47,6 +50,13 @@ func raise(reason: String) -> void:
 	count += 1
 	game.stats["alarms"] = count
 	game.hud.add_killfeed("ALARM — %s" % reason)
+	game.hud.set_alarm(true)
+	game.atmosphere.set_alarm(true)
+	var pl := game.get_player()
+	game.panic_civilians(pl.global_position if pl != null else Vector3.ZERO, 400.0)
+	if count == 1:
+		game.hud.say("PUBLIC ADDRESS · VANDERMEER INSTITUTE, HOLLOWAY CAMPUS",
+			"A CONTINUITY EVENT IS IN PROGRESS. REMAIN CALM. CALM IS SCORED.")
 	if game.mission != null and game.mission.has_method("on_alarm"):
 		game.mission.on_alarm(count, reason)
 
@@ -57,7 +67,10 @@ func on_noise(pos: Vector3, radius: float) -> void:
 	for g in game.guards:
 		var gd := g as Guard
 		if gd != null and gd.alive and gd.global_position.distance_to(pos) <= NEAR_GUARD:
-			raise("SHOTS FIRED")
+			# A guard close enough hears the shots: he is alerted, and heads for a
+			# station like any other alerted guard. No instant alarm.
+			if gd.state != Guard.State.ALERT:
+				gd.enter_alert()
 			return
 
 func note_seen() -> void:
@@ -69,7 +82,18 @@ func _process(delta: float) -> void:
 	_since_seen += delta
 	if _since_seen < DECAY:
 		return
+	stand_down("ALARM STOOD DOWN — lockdown stays")
+
+## Back to CALM: by decay, or by the player pressing a station's reset.
+## Guards still alerted stay alerted, and a guard who sees the player again
+## simply raises it anew.
+func stand_down(message: String) -> void:
+	if level != Level.ALARM:
+		return
 	level = Level.CALM
-	game.hud.add_killfeed("ALARM STOOD DOWN — lockdown stays")
+	_since_seen = 0.0
+	game.hud.add_killfeed(message)
+	game.hud.set_alarm(false)
+	game.atmosphere.set_alarm(false)
 	if game.mission != null and game.mission.has_method("on_calm"):
 		game.mission.on_calm()

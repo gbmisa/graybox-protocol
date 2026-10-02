@@ -1,6 +1,7 @@
 class_name HudAbilities
 extends HudPanel
-## Bottom-right ability list.
+## Ability list, bottom-left above the vitals — bottom-right is where the
+## viewmodel's hand and pistol are.
 ##
 ## The text comes from the kit's own `hud_lines()`, already formatted with live
 ## cooldowns, so this panel never branches on which character is loaded and
@@ -13,9 +14,9 @@ func build(root: Control) -> void:
 	_box = VBoxContainer.new()
 	_box.alignment = BoxContainer.ALIGNMENT_END
 	_box.add_theme_constant_override("separation", 4)
-	_box.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_box.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_box.position = Vector2(-280, -110)
+	_box.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_box.position = Vector2(12, -96)
 	ignore(_box)
 	root.add_child(_box)
 
@@ -27,8 +28,8 @@ func on_player_changed() -> void:
 	if p == null:
 		return
 	for line in p.kit.hud_lines():
-		var l := make_label(String(line), 16, Color.WHITE,
-			HORIZONTAL_ALIGNMENT_RIGHT)
+		var l := make_label(String(line), 14, Color(1, 1, 1, 0.75),
+			HORIZONTAL_ALIGNMENT_LEFT)
 		_box.add_child(l)
 		_labels.append(l)
 

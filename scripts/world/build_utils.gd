@@ -15,6 +15,7 @@ const CONCRETE := Color(0.38, 0.39, 0.42)
 const CRATE := Color(0.45, 0.36, 0.26)
 const METAL := Color(0.30, 0.34, 0.40)
 const PIPE := Color(0.22, 0.26, 0.30)
+const WALLPAPER := Color(0.46, 0.50, 0.40)   # interior partitions (r6 look)
 const GOLD := Color(1.0, 0.84, 0.37)
 const GREEN := Color(0.20, 1.0, 0.35)
 const RED := Color(1.0, 0.25, 0.25)
@@ -25,16 +26,10 @@ const LAMP_FLUORO := Color(0.82, 0.90, 1.00)   # offices, mezzanine
 const LAMP_SERVICE := Color(1.00, 0.86, 0.62)  # undercroft, plant, dock
 const LAMP_ARCANE := Color(0.72, 0.45, 1.00)   # the Wizard's shaft
 
-static var _mats: Dictionary = {}
-
+## Materials are cached per colour; `Surfaces` maps palette roles onto
+## photo textures.
 static func mat(color: Color) -> StandardMaterial3D:
-	var key := color.to_html()
-	if not _mats.has(key):
-		var m := StandardMaterial3D.new()
-		m.albedo_color = color
-		m.roughness = 1.0
-		_mats[key] = m
-	return _mats[key]
+	return Surfaces.mat(color)
 
 static func box(parent: Node3D, pos: Vector3, size: Vector3, color: Color,
 		collide: bool = true) -> MeshInstance3D:
@@ -164,55 +159,13 @@ static func stairs(parent: Node3D, base: Vector3, dir: Vector3, steps: int,
 	ramp(parent, base, dir, run * float(steps), rise * float(steps), width,
 		color, steps)
 
-## A sloped surface rising `rise_total` over `run_total`. Mesh and collider are
-## the same rotated box, so what you see is exactly what you walk on.
+## A sloped surface rising `rise_total` over `run_total` — a wedge, see
+## `RampBuilder` for why it is not a rotated box.
 static func ramp(parent: Node3D, base: Vector3, dir: Vector3,
 		run_total: float, rise_total: float, width: float, color: Color,
 		treads: int = 0, thickness: float = 1.2) -> void:
-	var length := sqrt(run_total * run_total + rise_total * rise_total)
-	var angle := atan2(rise_total, run_total)
-	var along_x: bool = absf(dir.x) > 0.5
-	var body := StaticBody3D.new()
-	if along_x:
-		body.rotation.z = angle * signf(dir.x)
-	else:
-		body.rotation.x = -angle * signf(dir.z)
-	var size := Vector3(length, thickness, width) if along_x \
-		else Vector3(width, thickness, length)
-	parent.add_child(body)
-	# Drop the box along its own (rotated) up axis so its top face is the walking surface.
-	var mid := base + dir * (run_total * 0.5) + Vector3(0, rise_total * 0.5, 0)
-	body.position = mid - body.transform.basis.y * (thickness * 0.5)
-	var cs := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = size
-	cs.shape = shape
-	body.add_child(cs)
-	var mi := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = size
-	mi.mesh = bm
-	mi.material_override = mat(color)
-	body.add_child(mi)
-	if treads > 1:
-		_treads(body, length, width, thickness, treads, along_x)
-
-## Non-colliding lines across the ramp so it still reads as a staircase.
-static func _treads(body: StaticBody3D, length: float, width: float,
-		thickness: float, count: int, along_x: bool) -> void:
-	var step := length / float(count)
-	var lip := Color(0.16, 0.17, 0.20)
-	for i in range(1, count):
-		var offset := -length * 0.5 + step * float(i)
-		var mi := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(0.09, 0.05, width) if along_x \
-			else Vector3(width, 0.05, 0.09)
-		mi.mesh = bm
-		mi.material_override = mat(lip)
-		mi.position = Vector3(offset, thickness * 0.5, 0) if along_x \
-			else Vector3(0, thickness * 0.5, offset)
-		body.add_child(mi)
+	RampBuilder.build(parent, base, dir, run_total, rise_total, width, color,
+		treads, thickness)
 
 ## Extraction trigger. Fires game.on_extraction_entered(zone_name).
 static func zone(parent: Node3D, game: GrayboxGame, zone_name: String,

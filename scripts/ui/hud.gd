@@ -8,6 +8,7 @@ extends CanvasLayer
 ##   feed       objective, detection meter, killfeed, centre messages
 ##   reticle    crosshair, hitmarker, damage vignette
 ##   prompt     interaction prompt and channel progress
+##   subtitle   the PA (and anything else that talks), as a subtitle
 ##
 ## Runs with PROCESS_MODE_ALWAYS so it keeps drawing while the tree is paused.
 
@@ -19,6 +20,7 @@ var abilities: HudAbilities
 var feed: HudFeed
 var reticle: HudReticle
 var prompt: HudPrompt
+var subtitle: HudSubtitle
 
 var _panels: Array[HudPanel] = []
 
@@ -34,7 +36,8 @@ func _ready() -> void:
 	feed = HudFeed.new()
 	reticle = HudReticle.new()
 	prompt = HudPrompt.new()
-	_panels = [vitals, abilities, feed, reticle, prompt]
+	subtitle = HudSubtitle.new()
+	_panels = [vitals, abilities, feed, reticle, prompt, subtitle]
 	for p in _panels:
 		add_child(p)
 		p.setup(self, root)
@@ -42,6 +45,7 @@ func _ready() -> void:
 func setup(p_game: GrayboxGame, p_player: Player) -> void:
 	game = p_game
 	player = p_player
+	set_secondary("")
 	for p in _panels:
 		p.on_player_changed()
 
@@ -65,6 +69,16 @@ func add_killfeed(text: String) -> void:
 
 func set_objective(text: String) -> void:
 	feed.set_objective(text)
+
+## The optional objective, under the main one. Empty hides it.
+func set_secondary(text: String) -> void:
+	feed.set_secondary(text)
+
+func set_alarm(on: bool) -> void:
+	feed.set_alarm(on)
+
+func say(speaker: String, text: String) -> void:
+	subtitle.say(speaker, text)
 
 func show_message(text: String, dur: float = 2.5) -> void:
 	feed.show_message(text, dur)

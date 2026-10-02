@@ -53,6 +53,8 @@ func _damage_hit(hit: Dictionary, dmg: float) -> void:
 		(col as Guard).take_hit(dmg, player.global_position, hit)
 	elif col.is_in_group("target"):
 		(col as Target).take_hit(dmg, player.global_position, hit)
+	elif col.is_in_group("civilians"):
+		(col as Civilian).take_hit(dmg, player.global_position, hit)
 	else:
 		return
 	player.game.hud.show_hitmarker()

@@ -214,11 +214,22 @@ func _check_no_regen() -> void:
 func _floor_under(space: PhysicsDirectSpaceState3D, pos: Vector3) -> float:
 	var q := PhysicsRayQueryParameters3D.create(
 		pos + Vector3(0, 1.2, 0), pos + Vector3(0, -5.0, 0))
+	q.exclude = _actors()
 	var hit := space.intersect_ray(q)
 	return -999.0 if hit.is_empty() else (hit["position"] as Vector3).y
 
 func _headroom(space: PhysicsDirectSpaceState3D, floor_pos: Vector3) -> float:
 	var from := floor_pos + Vector3(0, 0.06, 0)
 	var q := PhysicsRayQueryParameters3D.create(from, from + Vector3(0, 6.0, 0))
+	q.exclude = _actors()
 	var hit := space.intersect_ray(q)
 	return 99.0 if hit.is_empty() else (hit["position"] as Vector3).y - floor_pos.y
+
+## The probes measure level geometry, not whoever is standing on it: the
+## target spawns on his own probe point and, once he has shuffled a few cm,
+## the ray clips his capsule and reports 0.08m of headroom.
+func _actors() -> Array[RID]:
+	var out: Array[RID] = []
+	for n in root.find_children("*", "CharacterBody3D", true, false):
+		out.append((n as CharacterBody3D).get_rid())
+	return out

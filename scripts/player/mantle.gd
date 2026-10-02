@@ -22,6 +22,7 @@ const LIP_INSET := 0.1      # a second probe right on the lip, for fences
 const LANDING_PUSH := 0.5   # how far onto the ledge you end up...
 const LANDING_PUSH_FAR := 0.85   # ...or this far, if a parapet is in the way
 const RISE_EPS := 0.001
+const OVERHEAD := 0.85      # a ledge is empty this far above its lip (parapets are 0.6)
 
 var player: Player
 
@@ -89,12 +90,25 @@ func _find_ledge() -> Vector3:
 	# 2. Find the top, a little way past the lip.
 	var top_y := _top_at(wall_point + fwd * LEDGE_INSET, base_y, limit)
 	if _in_band(top_y - base_y, limit):
+		# The floor found past the wall is only a ledge if the wall ends near it.
+		if _wall_continues(wall_point, fwd, top_y):
+			return Vector3.INF
 		return _landing(wall_point, fwd, top_y)
 	# 3. Nothing to stand on there: a fence or rail? Vault it.
 	var lip_y := _top_at(wall_point + fwd * LIP_INSET, base_y, limit)
 	if not _in_band(lip_y - base_y, limit):
 		return Vector3.INF
+	if _wall_continues(wall_point, fwd, lip_y):
+		return Vector3.INF
 	return _vault(wall_point, fwd, lip_y, base_y)
+
+## A fence, a crate or a parapet ends within OVERHEAD of its top. A building
+## wall goes on above — and at 0.3m thick it looks like a thin ledge from the
+## side, so a floor behind it (F10, the ground floor) looked climbable: standing
+## on a crate and jumping at the main block's east wall carried you through it.
+func _wall_continues(wall_point: Vector3, fwd: Vector3, top_y: float) -> bool:
+	var above := Vector3(wall_point.x, top_y + OVERHEAD, wall_point.z)
+	return not _ray(above - fwd * 0.3, above + fwd * 0.5).is_empty()
 
 func _in_band(rise: float, limit: float) -> bool:
 	return rise >= MIN_RISE and rise <= limit + RISE_EPS

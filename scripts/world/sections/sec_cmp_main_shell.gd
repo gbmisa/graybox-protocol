@@ -17,8 +17,9 @@ extends RefCounted
 ##   west   1F door (z -11.5) off the fire escape, into the strip over the
 ##          west corridor
 ##
-## Portico: roof 2.4 on two solid piers, so Chad's chest probe has a face to
-## find at +0.9 (a roof on posts would pass it straight through).
+## Portico: roof 2.7 on two solid piers, so Chad's chest probe has a face to
+## find at +0.9 (a roof on posts would pass it straight through). Its underside
+## is 2.3: at 2.0 a guard's head (2.11) wedged on it in the doorway.
 
 const TOP := 8.4
 const T := 0.3
@@ -50,7 +51,7 @@ static func build(root: Node3D, game: GrayboxGame) -> void:
 
 static func _portico(root: Node3D) -> void:
 	var c := BuildUtils.CONCRETE
-	WallUtils.block(root, -2.5, -1.5, 0.0, 2.0, Z1 + T * 0.5, 0.5, c)
-	WallUtils.block(root, 1.5, 2.5, 0.0, 2.0, Z1 + T * 0.5, 0.5, c)
-	WallUtils.block(root, -2.5, 2.5, 2.0, 2.4, Z1 + T * 0.5, 0.5, c)
-	BuildUtils.lamp(root, Vector3(0, 1.9, -1.0), BuildUtils.LAMP_FLUORO, 1.2, 6.0)
+	WallUtils.block(root, -2.5, -1.5, 0.0, 2.3, Z1 + T * 0.5, 0.5, c)
+	WallUtils.block(root, 1.5, 2.5, 0.0, 2.3, Z1 + T * 0.5, 0.5, c)
+	WallUtils.block(root, -2.5, 2.5, 2.3, 2.7, Z1 + T * 0.5, 0.5, c)
+	BuildUtils.lamp(root, Vector3(0, 2.2, -1.0), BuildUtils.LAMP_FLUORO, 1.2, 6.0)

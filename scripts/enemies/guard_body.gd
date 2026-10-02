@@ -3,8 +3,7 @@ extends Node
 ## Guard visuals: the low-poly box figure, its collision capsule, the state
 ## indicator above its head, hit flash and the death animation.
 
-const BASE_COLOR := Color(0.55, 0.12, 0.12)
-const LIMB_COLOR := Color(0.45, 0.10, 0.10)
+const BASE_COLOR := Color(0.75, 0.08, 0.14)
 const AIM_COLOR := Color(1.00, 0.52, 0.18)
 
 var guard: Guard
@@ -15,8 +14,7 @@ var head_col: CollisionShape3D
 var _indicator: Label3D
 var _bark: Label3D
 var _bark_t: float = 0.0
-var _body_mesh: MeshInstance3D
-var _head_mesh: MeshInstance3D
+var figure: Humanoid
 
 func setup(p_guard: Guard) -> void:
 	guard = p_guard
@@ -25,14 +23,12 @@ func setup(p_guard: Guard) -> void:
 	_build_indicator()
 
 func _build_meshes() -> void:
-	_body_mesh = _box(Vector3(0.7, 1.7, 0.4), BASE_COLOR, 0.95)
-	guard.add_child(_body_mesh)
-	_head_mesh = _box(Vector3(0.4, 0.35, 0.35), BASE_COLOR, 1.95)
-	guard.add_child(_head_mesh)
-	for x in [-0.45, 0.45]:
-		var arm := _box(Vector3(0.25, 0.6, 0.25), LIMB_COLOR, 1.3)
-		arm.position.x = x
-		guard.add_child(arm)
+	# Security: crimson jacket, hi-vis slab, sickly green skin, cyan visor.
+	figure = Humanoid.create(guard, {
+		"skin": Color(0.62, 0.78, 0.38), "top": BASE_COLOR,
+		"bottom": Color(0.10, 0.10, 0.22), "accent": Color(0.98, 0.85, 0.10),
+		"visor": Color(0.1, 0.95, 1.0), "armed": true, "bulk": 1.15,
+	})
 
 func _build_collision() -> void:
 	var col := CollisionShape3D.new()
@@ -78,21 +74,12 @@ func say(text: String, secs: float = 3.0) -> void:
 	_bark_t = secs
 
 func tick(delta: float) -> void:
+	if figure != null:
+		figure.animate(Vector2(guard.velocity.x, guard.velocity.z).length(), delta)
 	if _bark_t > 0.0:
 		_bark_t -= delta
 		if _bark_t <= 0.0:
 			_bark.visible = false
-
-func _box(size: Vector3, color: Color, y: float) -> MeshInstance3D:
-	var mi := MeshInstance3D.new()
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	mi.mesh = mesh
-	var m := StandardMaterial3D.new()
-	m.albedo_color = color
-	mi.material_override = m
-	mi.position = Vector3(0, y, 0)
-	return mi
 
 ## "?" while investigating, "!" once alerted, blank on patrol.
 func set_indicator(text: String, color: Color) -> void:
@@ -114,26 +101,21 @@ func set_aiming(on: bool) -> void:
 		_tint(BASE_COLOR)
 
 func _tint(color: Color) -> void:
-	for m in [_body_mesh, _head_mesh]:
-		if m != null:
-			(m.material_override as StandardMaterial3D).albedo_color = color
+	if figure == null:
+		return
+	if color == BASE_COLOR:
+		figure.untint()
+	else:
+		figure.tint(color)
 
 func flash_hit() -> void:
-	if _body_mesh == null or _head_mesh == null:
-		return
-	var tw := guard.create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(_body_mesh, "material_override:albedo_color", Color.WHITE, 0.05)
-	tw.tween_property(_head_mesh, "material_override:albedo_color", Color.WHITE, 0.05)
-	tw.chain().tween_property(
-		_body_mesh, "material_override:albedo_color", BASE_COLOR, 0.15)
-	tw.parallel().tween_property(
-		_head_mesh, "material_override:albedo_color", BASE_COLOR, 0.15)
+	if figure != null:
+		figure.flash(guard)
 
 func play_death() -> void:
 	set_indicator("", Color.YELLOW)
 	_bark.visible = false
 	var tw := guard.create_tween()
 	tw.tween_property(guard, "rotation:x", -PI / 2.0, 0.4)
-	tw.tween_interval(1.5)
+	tw.tween_interval(6.0)
 	tw.tween_callback(guard.queue_free)

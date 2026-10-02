@@ -4,7 +4,7 @@
 > The human (Gregory) is technical, terse, and the final judge. Keep answers short with key
 > reasons. Do the work; don't narrate the work.
 >
-> **Starting a session? Read `docs/NEXT-SESSION.md` first** — current state, Gregory's
+> **Starting a session? Read `docs/NEXT-SESSION.md` first, then `docs/HANDOFF-r6.md`** — current state, Gregory's
 > standing scope rules for level one, and how to verify.
 
 ## What this is
@@ -27,7 +27,11 @@ back on its worst characters; consequences are ironic, not endorsing).
 ## Tech
 
 - **Godot 4.x** (see `project.godot` for exact version), GDScript, default renderer.
-- **Zero external assets**: all geometry is gray-box primitives, all SFX synthesized in code.
+- **CC0 assets only** (Kenney models/sounds/fonts, WRAD arms, Poly Haven textures — see
+  `ASSETS.md`). Level geometry is still built in code from primitives; assets *dress* it
+  (`Surfaces` textures every box by palette role, `Props` places models). Any new asset
+  must be CC0 or equivalent and listed in `ASSETS.md`. Paid sounds (e.g. Gamemaster
+  Audio) go in `assets/audio/sfx/` as drop-ins — never commit them to a public repo.
 - Targets: **Linux** (dev machine), **Windows** (future Steam release).
 
 ## Project layout
@@ -45,33 +49,68 @@ back on its worst characters; consequences are ironic, not endorsing).
   - `data/` — all tuning, no behaviour: `characters.gd`, `armors.gd`, `abilities.gd`,
     `guard_data.gd`, and `verbs.gd` (the traversal capability matrix).
   - `player/` — `player.gd` is a thin root composing `movement.gd`, `look.gd`,
-    `health.gd`, `mantle.gd`, `interactor.gd` and one kit.
+    `health.gd`, `mantle.gd`, `interactor.gd`, `footsteps.gd` and one kit;
+    `viewmodel.gd` (hand + pistol, recoil, flash, sway, bob, aim down sights; the GLB is
+    baked by `tools/blender/viewmodel_fit.py`) is created by the kit
+    that holds something (the Regular); it renders in its own SubViewport with a
+    narrow-FOV camera under the HUD (see its header) — don't parent it to the camera.
     - `player/kits/` — **one file per operative**: `kit_regular.gd`, `kit_wizard.gd`,
       `kit_chad.gd`, sharing `kit_base.gd`. Changing a character means opening exactly
       one file. Do not split a moveset across files.
   - `enemies/` — `guard.gd` root composing `guard_senses.gd`, `guard_brain.gd`,
-    `guard_combat.gd`, `guard_body.gd`; plus `target.gd` (VIP).
+    `guard_combat.gd`, `guard_body.gd`; plus `target.gd` (VIP) and `civilian.gd`
+    (bystanders that wander and panic). `guard_nav.gd` bakes the navmesh from the level's
+    static colliders (rebaked when a `RemoteDoor` changes); `nav_walker.gd` follows it.
+    Bodies are `world/humanoid.gd` (crude garish limb rig); blood is `fx/gore.gd`.
   - `world/` — `levels.gd` (level id -> builder), `level_meridian.gd` and
     `level_compound.gd` (orchestrators; each header holds that level's plan),
     `build_utils.gd` / `wall_utils.gd` (geometry helpers; `WallUtils.wall` cuts
-    doors and windows with headers and sills), `guard_posts*.gd`,
+    doors and windows with headers and sills), `surfaces.gd` (palette colour ->
+    triplanar photo texture), `ramp_builder.gd` (stairs/ramps as wedges that never
+    poke past their footprint), `props.gd` (Kenney model placement + box collision),
+    `guard_posts*.gd`,
     `mission_compound.gd` (level one's doors, switches, target, extractions,
     PA lines, and its ALARM consequences), `light_tiers.gd`, `hazard.gd`.
     - `world/sections/` — one builder per area, each with a `build(root, game)`.
       MERIDIAN: `sec_street`, `sec_tower`, … HOLLOWAY ROAD: `sec_app_estate`,
       `sec_app_canal` (the approach), `sec_app_heights` (its high routes),
       `sec_cmp_*` (the campus; `sec_cmp_climbs` = fire escape, scaffold,
-      boiler climb). Tools read
+      boiler climb; `sec_cmp_billboard` = board + maintenance scaffold + catwalk;
+      `sec_cmp_exits` = van, car, helicopter, helipad stair), `sec_props_*`
+      (set dressing tables) and `sec_skyline` (city beyond the bounds).
+      r6: `sec_cmp_vertical` (car-park deck, west gantry, podium, plant-room top),
+      `sec_annex` (the Scoring Annex north of the avenue — secondary objective),
+      `sec_crane_run` (platforming over the annex dock, a moving pallet, roof
+      plant units), `sec_art` (posters, graffiti, neon, the watching eyes, CCTV,
+      the CONSENTO statues). Tools read
       `LevelCompound.sections()`, so a new section is never missing from them.
     - `world/interactables/` — `interactable.gd` base plus `locked_door.gd`,
       `breakable_wall.gd`, `warded_seal.gd`, `switch.gd` (no-verb lever),
       `remote_door.gd` (opened/locked by the level, never by hand).
+  - `world/defence_plan.gd` — on ALARM, who searches and who mans which of
+    `MissionCompoundData.POSTS`. `world/secondary_score.gd` + `interactables/
+    wipe_terminal.gd` — the optional objective (wipe the Consent Score).
+  - `fx/post_fx.gd` + `assets/shaders/trip.gdshader` — the screen shader (OPTIONS >
+    TRIP FILTER); `assets/shaders/sky.gdshader` — the night sky; the level's
+    Environment is `SecCmpPerimeter.night()`. `fx/watcher_eye.gd` — things that
+    turn to look at you. Our own art: `tools/gen/make_textures.py` (posters,
+    graffiti, wallpaper, terrazzo, faces -> assets/textures/gen/) and
+    `tools/blender/*.py` (the viewmodel fit, the CONSENTO mascot).
+  - `ui/screens/screen_intro.gd` — the OPENING visual novel (title menu button).
   - `core/alert_state.gd` — building-wide CALM/ALARM; calls the level's
-    `mission.on_alarm()`.
-  - `ui/` — `hud.gd` root composing `hud_vitals/abilities/feed/reticle/prompt.gd`
-    (all extend `hud_panel.gd`); `ui/screens/` holds `screens.gd` (router) and one
-    file per screen over `screen_base.gd`.
-  - `fx/` — `audio_synth.gd` (synthesized SFX), `projectile.gd`, `meteor.gd`.
+    `mission.on_alarm()`. `core/settings.gd` — options persisted to
+    user://settings.cfg (volume, sensitivity, FOV, invert Y, fullscreen, vsync,
+    room tags, weapon bob).
+  - `ui/` — `hud.gd` root composing `hud_vitals/abilities/feed/reticle/prompt/
+    subtitle.gd` (all extend `hud_panel.gd`; PA lines go through `hud.say()` as
+    subtitles); `ui_theme.gd` (the menu look); `menu_backdrop.gd` (the live level
+    behind the main menu — skipped headless and with `-- --no-backdrop`);
+    `ui/screens/` holds `screens.gd` (router, layer 10 over the HUD) and one file
+    per screen over `screen_base.gd`: title (main menu), missions, options,
+    credits, select, briefing, pause, end.
+  - `fx/` — `audio_synth.gd` (SFX by name: drop-in file -> Kenney sample ->
+    synthesized fallback), `atmosphere.gd` (ambient light by light tier + the alarm's
+    siren / red pulse), `projectile.gd`, `meteor.gd`.
 - `.godot/`, `*.import` files — generated. Never edit by hand.
 
 ## Core design — do not break these without asking
@@ -123,7 +162,14 @@ back on its worst characters; consequences are ironic, not endorsing).
    meter (crouch/distance slow it; sprint/proximity speed it), noise attraction from
    gunfire/explosions. Guards: HP 50, hitscan pistol with spread. No flanking, no squads.
    Guard gunfire deliberately emits **no** noise event — it would cascade alerts.
-6. **Gray-box aesthetic is intentional.** Don't pretty it up unless asked.
+   **An alerted guard is not the alarm** (Gregory, 2026-10-01): he runs to an alarm station
+   (`AlarmStation`, `GuardBrain._run_to_station`) and presses it; kill him on the way and
+   there is no alarm. Sirens are 3D horns (`AlarmSiren`); never play the siren 2D.
+   **The alarm is a defence, not a rush** (Gregory, r6): one runner per station; on alarm
+   one guard searches and the rest man `MissionCompoundData.POSTS` (`DefencePlan`) and
+   fight from them within `GuardBrain.LEASH`, falling back when they lose you.
+6. **Past grayboxing now (Gregory asked, 2026-09-30):** textures, props, skyline,
+   viewmodel. Keep it Cruelty Squad-crude rather than realistic; tune by feel.
 7. **No health regeneration.** Damage is permanent for the run — that is what makes the
    armour loadout a real choice and each mission a single life. Guards hit for 22.
 8. **Guard fire is telegraphed, never instant.** `guard_combat.gd` holds a visible aim state
@@ -132,6 +178,20 @@ back on its worst characters; consequences are ironic, not endorsing).
    an unannounced chunk of the health bar. Do not shorten the wind-up below ~2x the i-frames.
 
 ## Hard-won invariants — these bugs all shipped once
+
+- **Guards path on a navmesh, never in straight lines.** `Guard.move_to` -> `NavWalker`
+  -> `GuardNav`. New collidable level geometry is picked up automatically at bake; doors
+  that change state must go through `RemoteDoor` (it requests the rebake). Don't put a
+  colliding prop in a gap narrower than ~1.0m beyond its width — the agent is 0.8m wide.
+- **Guards are 2.1m tall (head box), and the navmesh knows it** (`GuardNav.AGENT_HEIGHT`
+  2.1, `CELL_H` 0.1 — at 0.2 Recast rounded a 2.4 door header to "too low" and the lobby
+  became an island). Any overhead under ~2.2m that guards should pass needs raising; the
+  portico roof was 2.0 and wedged them. Guards' sight/shot rays ignore other guards
+  (`Guard.ray`), and `NavWalker.steer` separates them and sidesteps when stuck.
+  `tools/smoketest_guard_stuck.gd` shoots every guard near three spots and fails on any
+  that freezes — run it after touching guard movement or campus geometry.
+- **Player gravity is `PlayerMovement.PLAYER_GRAVITY` (24), not project gravity (9.8).**
+  Jump heights in LEVEL-compound.md still hold; horizontal jump range is ~40% shorter.
 
 - **Line-of-sight rays must exclude the target.** `Guard.ray()` takes `also_exclude` for
   this. Ask "is anything BETWEEN us"; a ray that ends inside the target's own capsule always
@@ -148,10 +208,23 @@ back on its worst characters; consequences are ironic, not endorsing).
   with no light in it is a black void. Use `BuildUtils.lamp()` / `lamps()`.
 - **Check for soft-locks.** Any space you can fall into needs a way out that the operatives
   who can reach it can actually use.
+- **Ramps are wedges, not rotated boxes.** A rotated box's lower corner pokes out past the
+  top of the stair by thickness × sin(slope); the west stair's came 0.75m through the foyer
+  wall (G12). `RampBuilder` cuts the top end vertical and tapers to the base.
+- **Parked vehicles are `Props.vehicle()`, never `place()`**: uncapped at one scale
+  (`VEHICLE_SCALE` 1.4), collision from the bodywork's own mesh (the systems test checks
+  hitbox roof/flank against the model); taller vehicles are cover, not a step; trees are `Props.tree()` (trunk only).
+- **Furniture keeps every doorway and the middle of every room clear**; the door test
+  probes at knee height (0.35m) because tables are under the 0.9m probe.
+- **Props never go on a patrol lane or in a doorway.** A colliding prop in a lane strands
+  the guard walking it. Lanes are listed in each `sec_props_*` header; clutter that could
+  be anywhere is `collide = false`.
 
 ## Controls
 
-WASD move · mouse look (captured) · LMB attack · RMB charge (wizard) · E ability
+ESC pause (resume / restart / options / main menu / desktop).
+WASD move · mouse look (captured) · LMB attack · RMB aim down sights (Regular) /
+charge (wizard) · E ability
 (Meteor / slam) · **F interact** (pick / unward / breach) · C/Ctrl crouch ·
 Shift sprint, but **dash for the wizard** · Space jump / mantle · ESC pause.
 
@@ -169,9 +242,17 @@ Shift sprint, but **dash for the wizard** · Space jump / mantle · ESC pause.
 - Level one: `tools/smoketest_compound.gd` (floor, headroom, openings) and
   `tools/smoketest_compound_systems.gd` (mantle reach, vaults, crawl gates,
   collision layers, headshots, sentry facing, alarm, unlabelled exits).
-  Visual: `tools/screenshot_compound.gd` (magenta sky = holes) and
-  `tools/screenshot_approach.gd` (real lighting) — both need `xvfb-run -a godot
-  --path . --rendering-method gl_compatibility --resolution 1280x720 --script …`.
+  Visual: `tools/screenshot_compound.gd` (magenta sky = holes),
+  `tools/screenshot_approach.gd` (real lighting), `tools/shot.gd -- views.txt
+  [--magenta]` (ad-hoc views, one `name ex ey ez lx ly lz` per line) and
+  `tools/smoketest_jumps.gd` plays the crane run's jumps with the real player;
+  `tools/intro_shot.gd` photographs the opening's scenes.
+  Screenshots render Forward+ under xvfb on this machine's GPU (drop the
+  `--rendering-method gl_compatibility` flag to see the real look).
+  `tools/play_shot.gd [-- x y z yaw]` (boots the real game: every menu screen, then
+  the player's own view with viewmodel at rest and mid-recoil) — all need
+  `xvfb-run -a godot --path . --rendering-method gl_compatibility --resolution
+  1280x720 --script …`. Add `-- --graybox` to see the untextured boxes.
 
 ## Exporting (do this FOR the user when asked — don't make him click through it)
 

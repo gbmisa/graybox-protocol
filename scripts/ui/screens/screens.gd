@@ -11,7 +11,12 @@ var _screens: Dictionary = {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	layer = 10   # over the HUD, so the pause menu is never drawn under it
 	_register("title", ScreenTitle.new())
+	_register("missions", ScreenMissions.new())
+	_register("options", ScreenOptions.new())
+	_register("credits", ScreenCredits.new())
+	_register("intro", ScreenIntro.new())
 	_register("select", ScreenSelect.new())
 	_register("briefing", ScreenBriefing.new())
 	_register("pause", ScreenPause.new())
@@ -30,7 +35,7 @@ func _register(key: String, screen: ScreenBase) -> void:
 	_screens[key] = screen
 
 func click() -> void:
-	AudioSynth.play(self, "click")
+	AudioSynth.play(self, "click", -4.0)
 
 # ------------------------------------------------------------ public API ---
 func show_title() -> void:
@@ -38,6 +43,21 @@ func show_title() -> void:
 
 func show_select() -> void:
 	_show("select")
+
+func show_missions() -> void:
+	_show("missions")
+
+## `from` is "title" or "pause" — where BACK goes.
+func show_options(from: String) -> void:
+	(_screens["options"] as ScreenOptions).from = from
+	_show("options")
+
+## The opening visual novel (ScreenIntro); ends back on the title.
+func show_intro() -> void:
+	_show("intro")
+
+func show_credits() -> void:
+	_show("credits")
 
 func show_briefing() -> void:
 	_show("briefing")
@@ -61,3 +81,7 @@ func _show(key: String) -> void:
 	screen.refresh()
 	hide_all()
 	screen.root.visible = true
+	screen.root.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(screen.root, "modulate:a", 1.0, 0.18)
+	screen.focus_first.call_deferred()

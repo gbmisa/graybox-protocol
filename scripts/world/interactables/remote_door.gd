@@ -35,6 +35,8 @@ func _animate_open() -> void:
 func _set_open(value: bool, animate: bool) -> void:
 	is_open = value
 	_col.set_deferred("disabled", value)
+	if animate:
+		GuardNav.request_rebake()
 	var y := -_size.y - 0.1 if value else 0.0
 	if not animate:
 		_mesh.position.y = y

@@ -52,6 +52,14 @@ const POINTS := [
 	["H walkway meets the road deck", Vector3(-42.1, 4.0, 137), ""],
 	["H pipe bridge over the canal", Vector3(38.6, 4.0, 96), ""],
 	["H pumping station roof", Vector3(40, 4.0, 77), ""],
+	["H gantry over the back yards", Vector3(39.4, 4.0, 70), ""],
+	["H gantry stair top", Vector3(39.4, 6.0, 61.4), ""],
+	["H corridor floor over the lobby", Vector3(-0.5, 4.0, -4.0), ""],
+	["H east terrace roof", Vector3(30, 6.0, 57), ""],
+	["H billboard scaffold landing 1", Vector3(16.4, 4.5, 30.7), ""],
+	["H billboard scaffold landing 2", Vector3(8.8, 9.0, 30.7), ""],
+	["H billboard catwalk", Vector3(0, 13.5, 27.8), ""],
+	["H billboard catwalk west end", Vector3(-15, 13.5, 27.8), ""],
 	["H top extension", Vector3(-32.2, 5.4, 63), ""],
 	["H terrace roof", Vector3(-30, 6.0, 57), ""],
 	["H overbridge span", Vector3(-25.5, 5.0, 39), ""],
@@ -83,7 +91,7 @@ const POINTS := [
 	["R west stair top", Vector3(-13, 4.0, -4), ""],
 	["R west corridor", Vector3(-20.5, 0, -6), ""],
 	["R culvert", Vector3(-27, 0, 6), "crawl"],
-	["R outfall / van E1", Vector3(-38, -2.2, 6), ""],
+	["R outfall / van E1", Vector3(-36.2, -2.2, 6), ""],
 
 	# --- THE WIZARD — "Decommissioned" (§4.2) ---
 	["W west alley", Vector3(-32, 0, 30), ""],
@@ -91,16 +99,16 @@ const POINTS := [
 	["W warded door", Vector3(-34, 0, -13), ""],
 	["W boiler house", Vector3(-31, 0, -13), ""],
 	["W boiler basement", Vector3(-31, -3.0, -15), ""],
-	["W squeeze mouth", Vector3(-28, -3, -17.5), "squeeze"],
-	["W squeeze exit", Vector3(-22.8, -3, -17.5), "squeeze"],
+	["R undercroft crawl, mouth", Vector3(-28, -3, -17.5), "crawl"],
+	["R undercroft crawl, exit", Vector3(-22.8, -3, -17.5), "crawl"],
 	["W undercroft dry floor", Vector3(-20.5, -3, -17.0), ""],
 	["W spur walkway", Vector3(-16, -3, -10.3), ""],
 	["W caretaker spur ramp", Vector3(-16, -1.5, -8.9), "any"],
 	["W caretaker landing", Vector3(-18.5, 0, -9.0), ""],
-	["W shutter squeeze", Vector3(-20.5, 0, -11), "squeeze"],
+	["R shutter crawl", Vector3(-20.5, 0, -11), "crawl"],
 	["W south corridor", Vector3(-13, 4.0, -4), ""],
 	["W west landing", Vector3(-15, 4.0, -10), ""],
-	["W deck E2", Vector3(23, 11.2, -8), ""],
+	["W deck E2", Vector3(23.5, 11.2, -4.6), ""],
 
 	# --- GIGA CHAD — "Structural Review" (§4.3) ---
 	["C cracked wall", Vector3(22, 0, 24), ""],
@@ -113,12 +121,30 @@ const POINTS := [
 	["C bridge roof", Vector3(13, 6.6, -12), ""],
 	["C east landing", Vector3(8, 4.0, -14), ""],
 	["C hall rear door", Vector3(6, 4.0, -14), ""],
-	["C portico roof", Vector3(0, 2.4, -1.0), ""],
+	["C portico roof", Vector3(0, 2.7, -1.0), ""],
+
+	# --- SCORING ANNEX (r6, sec_annex) ---
+	["N checkpoint gate", Vector3(0, 0, -40.2), ""],
+	["N service crawl", Vector3(14.6, 0, -40.2), "crawl"],
+	["N annex yard", Vector3(-12, 0, -50), ""],
+	["N hall", Vector3(-4, 0, -50.5), ""],
+	["N hall south door", Vector3(-4, 0, -46), ""],
+	["N annex ramp", Vector3(-12.95, 2.0, -50.05), "any"],
+	["N 1F landing", Vector3(-13, 4.0, -56), ""],
+	["N office", Vector3(-8, 4.0, -55.5), ""],
+	["N corridor", Vector3(-4, 4.0, -48), ""],
+	["N server room", Vector3(1, 4.0, -54), ""],
+	["N fire stair landing", Vector3(7.5, 4.0, -54.8), ""],
+	["N fire stair top", Vector3(7.5, 8.0, -47.3), ""],
+	["N annex roof", Vector3(-4, 8.0, -52), ""],
+	["N back strip", Vector3(0, 0, -60), ""],
+	["N generator strip", Vector3(-16, 0, -49), ""],
 	["C landing plate", Vector3(0, 4.0, -2.6), ""],
 	["C south corridor west arm", Vector3(-6, 4.0, -4), ""],
 	["C north corridor", Vector3(-8, 0, -12.5), ""],
 	["C panic room door", Vector3(-16, 0, -14), ""],
-	["C deck E2", Vector3(23, 11.2, -8), ""],
+	["C deck E2", Vector3(23.5, 11.2, -4.6), ""],
+	["C helipad stair (Regular's way up)", Vector3(23.5, 8.9, -1.0), "any"],
 ]
 
 ## Declared openings from §2.3 / §2.4: label, door position, the axis you
@@ -172,6 +198,16 @@ const LINES := [
 	["road deck -> pipe bridge", Vector3(38.6, 4.5, 114), Vector3(38.6, 4.5, 110), true],
 	["fire escape top -> roof", Vector3(-23.15, 8.9, -2.5), Vector3(-20, 8.9, -2.5), true],
 	["scaffold top -> roof", Vector3(-17.1, 8.9, 0), Vector3(-17.1, 8.9, -4), true],
+	# G12: the west stair's ramp used to poke 0.75m through the foyer's west
+	# wall just under the ceiling ("something sticking out of the wall").
+	["west foyer ceiling clear to the wall (G12)", Vector3(-5, 3.3, -4), Vector3(-12.7, 3.3, -4), true],
+	["1F corridor crosses the lobby void", Vector3(-3.6, 4.4, -4.0), Vector3(2.6, 4.4, -4.0), true],
+	# A tree once stood across the foot of the deck-access stair.
+	["deck-access stair foot, south edge", Vector3(-8, 1.0, 169.6), Vector3(-11.5, 1.0, 169.6), true],
+	["deck-access stair foot, north edge", Vector3(-8, 1.0, 171.4), Vector3(-11.5, 1.0, 171.4), true],
+	["pumping station roof -> gantry", Vector3(39.4, 4.5, 76), Vector3(39.4, 4.5, 68), true],
+	["scaffold top landing -> catwalk round the board", Vector3(16.4, 14.0, 30.5), Vector3(16.4, 14.0, 27.8), true],
+	["helipad stair top -> deck", Vector3(23.5, 11.7, -3.0), Vector3(23.5, 11.7, -4.8), true],
 ]
 
 func _process(_delta: float) -> bool:
@@ -248,6 +284,13 @@ func _check_openings(space: PhysicsDirectSpaceState3D) -> void:
 			print("  %-34s open, >= 1.2m at %s" % [label, pos])
 		else:
 			_fail("%s is narrower than 1.2m at %s" % [label, pos])
+		# Knee height too: furniture is under 0.9m, so the probes above pass
+		# straight over a table that walls the door off (canteen, kitchen door).
+		var low := Vector3(pos.x, pos.y + 0.35, pos.z)
+		for lat in [-axis_vec, Vector3.ZERO, axis_vec]:
+			if not _clear(space, low - through_vec + lat, low + through_vec + lat):
+				_fail("%s is blocked at knee height near %s (furniture?)" % [label, pos + lat])
+				break
 	for entry in LINES:
 		var label: String = entry[0]
 		var a: Vector3 = entry[1]

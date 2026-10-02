@@ -14,6 +14,11 @@ var _frame := 0
 var _game: GrayboxGame
 var _bad := 0
 var _dummy: Guard
+var _runner: Guard
+var _veh: Array = []
+
+const VEHICLES := ["car/delivery", "car/taxi", "car/truck", "car/suv", "car/garbage-truck",
+	"car/van", "car/police", "car/sedan"]
 
 func _process(_delta: float) -> bool:
 	_frame += 1
@@ -30,12 +35,24 @@ func _process(_delta: float) -> bool:
 		BuildUtils.box(_game.level_root, Vector3(0, 0.5, 30), Vector3(6, 1.0, 0.2),
 			BuildUtils.WALL)
 		_dummy = _game.spawn_guard({"waypoints": [Vector3(0, 0, 36)]})
+		# Vehicles on empty ground, for the hitbox check.
+		for i in VEHICLES.size():
+			_veh.append(Props.vehicle(_game.level_root, VEHICLES[i], Vector3(100 + i * 8, 0, 300), 0.0))
+	if _frame == 3:
+		_check_stations()   # before anything raises the alarm
 	if _frame < 8:
 		return false
 	if _frame == 8:
 		_check_alarm()      # first: shooting the dummy guard raises one too
+		_check_station_press()
+		_check_vehicles()
 		_check_mantle()
+		_check_vertical()
+		_check_secondary()
+		_check_crane_run()
+		_check_lanes()
 		_check_vault()
+		_check_wall_not_vaulted()
 		_check_crawl_gates()
 		_check_layers()
 		_check_headshots()
@@ -85,12 +102,109 @@ func _check_mantle() -> void:
 	_ok(_ledge_from(Vector3(11.0, 6.9, -14.25), west, 6.9) == Vector3.INF,
 		"roof from stack 6 (1.5) is a jump, not a mantle")
 
+## r6 high levels (SecCmpVertical): each tops out one mantle under the wall
+## top or the next perch, and the podium is not a climb from the courtyard.
+func _check_vertical() -> void:
+	print("-- high levels (r6) --")
+	var d := _ledge_from(Vector3(10, 3.0, -25.4), PI, 3.0)
+	_ok(d != Vector3.INF and d.y > 3.9, "car-park deck -> compound wall top (%s)" % d)
+	d = _ledge_from(Vector3(-27.6, 3.0, 2.0), PI / 2.0, 3.0)
+	_ok(d != Vector3.INF and d.y > 3.9, "west gantry -> compound wall top (%s)" % d)
+	d = _ledge_from(Vector3(-17.7, 2.85, 23.2), PI, 2.85)
+	_ok(d != Vector3.INF and d.y > 3.9, "podium -> south wall top (%s)" % d)
+	d = _ledge_from(Vector3(-4.2, 10.4, -16.0), PI / 2.0, 10.4)
+	_ok(d != Vector3.INF and d.y > 11.4, "plant room top -> water tank platform (%s)" % d)
+	_ok(_ledge_from(Vector3(-17.7, 0, 18.6), PI, 0.0) == Vector3.INF,
+		"podium is not a climb from the courtyard floor")
+
+## r6 secondary: the server in the annex wipes the score — billboard, stats,
+## HUD line — once.
+func _check_secondary() -> void:
+	print("-- secondary (r6) --")
+	var term: WipeTerminal = null
+	for n in _game.get_tree().get_nodes_in_group("interactable"):
+		if n is WipeTerminal:
+			term = n
+	_ok(term != null, "the annex has a score server terminal")
+	if term == null:
+		return
+	_ok(not _game.stats.has("secondary"), "the score starts intact")
+	term.open(_game.player)
+	var board := _game.get_tree().get_nodes_in_group("score_board")
+	_ok(String(_game.stats.get("secondary", "")) != "", "wiping it is recorded for the end screen")
+	_ok(board.size() > 0 and "ERR" in (board[0] as Label3D).text, "the billboard reads ERR")
+	_ok(term.prompt_for(_game.player).is_empty(), "the terminal is done after one wipe")
+
+## r6 crane run: every climb on it is a mantle (the hops between are <= 2.5m).
+## Yaw: 0 north (-z), PI south, PI/2 west, -PI/2 east.
+func _check_crane_run() -> void:
+	print("-- crane run (r6) --")
+	var steps := [
+		["deck -> crate 1", Vector3(16.8, 3.0, -36.6), 0.0, 3.0, 4.1],
+		["crate 1 -> crate 2", Vector3(16.8, 4.15, -38.3), 0.0, 4.15, 5.25],
+		["container -> P4", Vector3(12.3, 4.6, -50.7), PI / 2.0, 4.6, 5.65],
+		["P6 -> annex roof parapet", Vector3(6.85, 7.4, -57.0), PI / 2.0, 7.4, 7.95],
+	]
+	# Crate 2 (5.3) to the catwalk (6.0) is a 0.7 hop, under the mantle's chest
+	# probe: just check there is floor to land on.
+	var q := PhysicsRayQueryParameters3D.create(Vector3(16.8, 7.5, -40.9), Vector3(16.8, 4.0, -40.9))
+	var hit := _space().intersect_ray(q)
+	_ok(not hit.is_empty() and absf((hit["position"] as Vector3).y - 6.0) < 0.05,
+		"crate 2 -> wall catwalk: floor at 6.0 to land on")
+	for st in steps:
+		var d := _ledge_from(st[1], float(st[2]), float(st[3]))
+		_ok(d != Vector3.INF and d.y > float(st[4]), "%s (%s)" % [st[0], d])
+
+## r5 lanes: the container stacks and the estate-yard zigzag walls climb in
+## 1.15 rises and not before.
+func _check_lanes() -> void:
+	print("-- lanes (r5) --")
+	var east := -PI / 2.0
+	_ok(_ledge_from(Vector3(-16.6, 1.15, 5.6), east, 1.15) != Vector3.INF,
+		"west stack: crate -> lower roof")
+	_ok(_ledge_from(Vector3(-16.7, 0, 5.6), east, 0.0) == Vector3.INF,
+		"west stack: the lower roof (2.3) is not a climb from the floor")
+	_ok(_ledge_from(Vector3(-12.8, 2.3, 5.6), east, 2.3) != Vector3.INF,
+		"west stack: lower roof -> roof crate")
+	_ok(_ledge_from(Vector3(-11.6, 3.45, 5.6), east, 3.45) != Vector3.INF,
+		"west stack: roof crate -> upper roof")
+	_ok(_ledge_from(Vector3(13.4, 1.15, 5.6), PI / 2.0, 1.15) != Vector3.INF,
+		"east stack: crate -> lower roof")
+	_ok(_ledge_from(Vector3(10.6, 2.3, 5.6), PI / 2.0, 2.3) != Vector3.INF,
+		"east stack: lower roof -> roof crate")
+	_ok(_ledge_from(Vector3(8.6, 3.45, 5.6), PI / 2.0, 3.45) != Vector3.INF,
+		"east stack: roof crate -> upper roof")
+	_ok(_ledge_from(Vector3(-8, 1.15, 167.6), 0.0, 1.15) != Vector3.INF,
+		"yard wall 1: crate stair -> wall top")
+	_ok(_ledge_from(Vector3(-3, 0, 168.4), 0.0, 0.0) == Vector3.INF,
+		"yard wall 1: not climbable from the floor")
+	_ok(_ledge_from(Vector3(16, 1.15, 146.9), PI, 1.15) != Vector3.INF,
+		"yard wall 2: crate stair -> wall top")
+
 ## A 1.0m fence has no top to stand on: the climb vaults it.
 func _check_vault() -> void:
 	print("-- fence vault --")
 	var dest := _ledge_from(Vector3(0, 0, 30.9), 0.0, 0.0)
 	_ok(dest != Vector3.INF and dest.z < 29.8 and dest.y < 0.3,
 		"a 1.0m fence vaults to the far side (landed at %s)" % dest)
+
+## A building wall is not a fence. Jumping at the main block's east wall from
+## any crate (or the bridge roof) must never carry you through it.
+func _check_wall_not_vaulted() -> void:
+	print("-- walls are not vaulted --")
+	var west := PI / 2.0
+	var bad := 0
+	for c in [[1.15, -19.0], [2.30, -18.0], [3.45, -17.0], [4.60, -16.0],
+			[5.75, -15.0], [6.90, -14.25]]:
+		for x in [10.5, 10.9]:
+			for jump in [0.0, 1.0]:
+				var d := _ledge_from(Vector3(x, float(c[0]) + jump, float(c[1])), west, float(c[0]))
+				if d != Vector3.INF and d.x < 10.1 and d.y < 8.2:
+					bad += 1
+	_ok(bad == 0, "no crate position vaults through the east wall (%d did)" % bad)
+	_ok(_ledge_from(Vector3(12.5, 0, -17), west, 0.0) == Vector3.INF
+		or _ledge_from(Vector3(12.5, 0, -17), west, 0.0).x > 10.1,
+		"the ground-floor alley does not vault into the building either")
 
 ## Crawl gates are collision: 0.85 fits the shutter, 1.45 does not.
 func _check_crawl_gates() -> void:
@@ -157,6 +271,10 @@ func _check_sentry_facing() -> void:
 ## §2.6: the puddle kills a walking Wizard, and a sprinting Regular's round
 ## trip to look at the squeeze is survivable in street clothes.
 func _check_puddle() -> void:
+	var m := _game.mission as MissionCompound
+	m.hazard.set_enabled(false)
+	_ok(not m.hazard.enabled, "the water isolator switches the energised zone off")
+	m.hazard.set_enabled(true)
 	print("-- puddle --")
 	var len := MissionCompoundData.HAZARD_BOX.size.z
 	var dps := MissionCompoundData.HAZARD_DPS
@@ -188,12 +306,70 @@ func _check_alarm() -> void:
 	_game.alert.raise("TEST")
 	var m := _game.mission as MissionCompound
 	_ok(_game.alert.is_alarm(), "alarm raised")
+	_ok(_game.atmosphere._alarm, "siren and red pulse started")
 	_ok(m.csd.all(func(d) -> bool: return not (d as RemoteDoor).is_open), "CSD pair locked")
 	_ok(_game.target.fleeing, "target is running for G.04")
-	_ok(_game.guards.size() == before + 2,
-		"two reinforcements called in (%d -> %d)" % [before, _game.guards.size()])
+	_ok(_game.guards.size() == before + 3,
+		"three reinforcements called in (%d -> %d)" % [before, _game.guards.size()])
 	_game.alert.raise("AGAIN")
-	_ok(_game.guards.size() == before + 2, "a raise during ALARM adds nobody")
+	_ok(_game.guards.size() == before + 3, "a raise during ALARM adds nobody")
+
+## The alarm is a guard's walk to a station, not a reflex. Shooting a guard
+## alerts him and sends him running; it does not raise the alarm. Pressing the
+## station does.
+func _check_stations() -> void:
+	print("-- alarm stations --")
+	var stations := get_nodes_in_group_safe("alarm_station")
+	_ok(stations.size() >= 8, "%d alarm stations in the level" % stations.size())
+	_ok(get_nodes_in_group_safe("siren").size() >= 6, "sirens are mounted in the level")
+	var st := stations[0] as AlarmStation
+	_runner = _game.spawn_guard({"waypoints": [st.global_position + Vector3(0, 0, -8)]})
+	_runner.take_damage(10.0, _runner.global_position + Vector3(0, 0, -5))
+	_ok(not _game.alert.is_alarm(), "a guard being hit does not raise the alarm")
+	_ok(_runner.alarm_run, "he is sent running for a station")
+
+## Second half, after the alarm test (pressing spawns reinforcements, which
+## would skew its count): the guard arrives and presses.
+func _check_station_press() -> void:
+	var st := _game.nearest_station(_runner.global_position)
+	_ok(st != null, "a station is in reach of the guard")
+	_game.alert.reset()
+	_runner.alarm_run = true
+	_runner.global_position = st.global_position + Vector3(0, 0, -1.0)
+	_runner.brain._run_to_station(0.1)
+	_ok(_game.alert.is_alarm(), "a guard reaching the station raises the alarm")
+	_runner.alive = false
+
+func get_nodes_in_group_safe(group: String) -> Array:
+	return root.get_tree().get_nodes_in_group(group)
+
+## Parked vehicles are uncapped (a van is as tall as it looks) and their
+## collision is the bodywork's own mesh: a ray down through the middle of the
+## roof must land on the visual roof, and a ray in from the side must stop at
+## the visual flank — not at a box round the model.
+func _check_vehicles() -> void:
+	print("-- vehicles --")
+	for i in VEHICLES.size():
+		var holder := _veh[i] as Node3D
+		var box := Props.bounds(holder, (holder.get_parent() as Node3D).global_transform)
+		# Highest collision surface over a grid of the footprint vs the visual roof.
+		var top := -1.0
+		for fx: float in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+			for fz: float in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+				var px := box.position.x + box.size.x * fx
+				var pz := box.position.z + box.size.z * fz
+				var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(
+					Vector3(px, box.end.y + 2.0, pz), Vector3(px, -1, pz)))
+				if not hit.is_empty():
+					top = maxf(top, (hit["position"] as Vector3).y)
+		_ok(absf(top - box.end.y) < 0.15 and box.size.y > 1.0,
+			"%s: hitbox roof %.2fm vs model roof %.2fm" % [VEHICLES[i], top, box.end.y])
+		# Flank: a shot in from the west stops at the bodywork, not a box round it.
+		var cz := box.position.z + box.size.z * 0.5
+		var side := _space().intersect_ray(PhysicsRayQueryParameters3D.create(
+			Vector3(box.position.x - 3.0, 0.9, cz), Vector3(box.end.x, 0.9, cz)))
+		var gap: float = (side["position"] as Vector3).x - box.position.x if not side.is_empty() else 99.0
+		_ok(gap > -0.05 and gap < 0.7, "%s: flank hit %.2fm inside the model's edge" % [VEHICLES[i], gap])
 
 func _check_briefing_fits() -> void:
 	print("-- briefing fits --")

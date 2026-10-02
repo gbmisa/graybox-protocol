@@ -10,7 +10,12 @@ extends RefCounted
 ##                 A1 at a height and straight into A3's turn.
 ##   Pipe bridge   a 1.6m catwalk at 4.0 from the road deck's north rail, x
 ##                 [37.8, 39.4], over the towpath, the canal and the slipway
-##                 to the pumping-station roof (x [37, 43] z [74, 80]).
+##                 to the pumping-station roof (x [37, 43] z [74, 80]), then
+##                 a gantry on over the back yards and a short stair up to
+##                 the east terrace roof (6.0) — the rooftop way the whole
+##                 length of the terraces to the overbridge and the wall top.
+##                 (It used to stop on the pumping station: a bridge to a
+##                 dead end, "doesn't really go anywhere".)
 ##   Extensions    five unauthorised extensions up the back of the west
 ##                 terrace, x [-37.6, -31.6] z [62, 64]: 1.1 · 2.2 · 3.3 ·
 ##                 4.4 · 5.4, then the terrace roofs at 6.0. The alley gaps
@@ -54,6 +59,26 @@ static func _pipe_bridge(root: Node3D) -> void:
 		var h: float = DECK - 1.0 - p.y
 		BuildUtils.box(root, p + Vector3(0, h * 0.5, 0), Vector3(0.4, h, 0.4), m)
 	WallUtils.block(root, 37, 43, 0, DECK, 74, 80, BuildUtils.WALL)       # pumping station
+	_gantry(root)
+
+## Pumping-station roof -> over the terrace back yards -> up to the roofs.
+static func _gantry(root: Node3D) -> void:
+	var m := BuildUtils.METAL
+	BuildUtils.plate(root, 38.4, 40.4, 65.6, 74, DECK, 0.2, m)
+	for x in [38.4, 40.4]:
+		WallUtils.block(root, x - 0.05, x + 0.05, DECK, DECK + 1.0, 65.6, 74, m)
+	for z in [67.0, 72.5]:
+		for x in [38.5, 40.3]:
+			BuildUtils.box(root, Vector3(x, (DECK - 0.2) * 0.5, z),
+				Vector3(0.2, DECK - 0.2, 0.2), m)
+	BuildUtils.stairs(root, Vector3(39.4, DECK, 65.6), Vector3(0, 0, -1),
+		5, 0.4, 0.72, 2.0, m)
+	# The roof itself: a tank, a vent stack, and the reason it's fenced off.
+	Props.place(root, "city_industrial/detail-tank", Vector3(41.4, DECK, 78.6), 90.0, 3.2)
+	BuildUtils.box(root, Vector3(37.8, DECK + 0.9, 74.8), Vector3(0.6, 1.8, 0.6),
+		BuildUtils.PIPE)
+	SecCmpDressing.plate_sign(root, "ROOF ACCESS BY GRATITUDE ONLY\nTHE WATER IS FINE (CONFIDENTIAL)",
+		Vector3(39.4, DECK + 2.5, 74.0), 0.0, SecCmpDressing.PLATE)
 
 ## Against the back of the west terrace; each box a year of nobody enforcing.
 static func _extensions(root: Node3D) -> void:
@@ -87,4 +112,5 @@ static func _lights(root: Node3D) -> void:
 	BuildUtils.lamp(root, Vector3(-30, DECK + 2.2, 170.5), BuildUtils.LAMP_SERVICE, 0.7, 9.0)
 	BuildUtils.lamp(root, Vector3(38.6, DECK + 2.5, 96), BuildUtils.LAMP_SERVICE, 0.5, 8.0)
 	BuildUtils.lamp(root, Vector3(38.6, DECK + 1.6, 110.5), BuildUtils.LAMP_SERVICE, 0.8, 6.0)
+	BuildUtils.lamp(root, Vector3(39.4, DECK + 2.2, 70), BuildUtils.LAMP_SERVICE, 0.6, 7.0)
 	BuildUtils.lamp(root, Vector3(-25.5, BRIDGE + 2.5, 39), BuildUtils.LAMP_SERVICE, 0.6, 9.0)

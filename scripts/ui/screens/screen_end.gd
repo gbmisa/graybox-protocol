@@ -42,6 +42,8 @@ func _stat_lines() -> Array:
 		"KILLS: %d" % int(stats.get("kills", 0)),
 		"TIMES DETECTED: %d" % int(stats.get("detected", 0)),
 		"ALARMS RAISED: %d" % int(stats.get("alarms", 0)),
+		"SECONDARY: %s" % (String(stats.get("secondary", "")) if stats.has("secondary") \
+			and not String(stats["secondary"]).is_empty() else "SCORE INTACT"),
 		"OPERATIVE: %s" % String(stats.get("char_name", "")),
 		"LOADOUT: %s" % loadout,
 	]

@@ -32,7 +32,7 @@ func tick(player: Player, delta: float, dist: float) -> void:
 		return
 	aiming = float(gs["aim_time"])
 	guard.body.set_aiming(true)
-	AudioSynth.play(guard, "aim", -6.0)
+	AudioSynth.play_at(guard, "aim", -6.0)
 
 func _tick_aim(player: Player, delta: float, gs: Dictionary) -> void:
 	aiming -= delta
@@ -65,7 +65,8 @@ func _shoot(player: Player, gs: Dictionary) -> void:
 	var endpoint: Vector3 = hit["position"] if not hit.is_empty() \
 		else muzzle + dir * range_m
 	Tracer.fire(guard.game, muzzle, endpoint)
-	AudioSynth.play(guard, "guard_shot", -3.0)
+	guard.game.panic_civilians(muzzle, 26.0)
+	AudioSynth.play_at(guard, "guard_shot", -3.0, 1.0, 80.0)
 	if hit.is_empty():
 		return
 	var collider := hit.get("collider") as Node

@@ -32,27 +32,58 @@ static func build(root: Node3D, game: GrayboxGame) -> void:
 
 static func _environment(root: Node3D) -> void:
 	var we := WorldEnvironment.new()
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.03, 0.04, 0.07)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	# Night. Low ambient so the three light tiers read by eye: LIT spaces are
-	# the ones with real lamps in them, DARK has a weak one, PITCH has none.
-	env.ambient_light_color = Color(0.40, 0.46, 0.62)
-	env.ambient_light_energy = 0.55
-	# Haze, so the campus and its billboard come out of the dark as you close
-	# on them rather than sitting there from the first frame.
-	env.fog_enabled = true
-	env.fog_light_color = Color(0.10, 0.12, 0.18)
-	env.fog_density = 0.006
-	we.environment = env
+	we.environment = night()
 	root.add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52, -35, 0)
-	sun.light_color = Color(0.78, 0.85, 1.0)
-	sun.light_energy = 0.35
+	sun.light_color = Color(0.70, 0.78, 1.0)
+	sun.light_energy = 0.3
 	sun.shadow_enabled = true
 	root.add_child(sun)
+
+## The night (r6 look): a shader sky (assets/shaders/sky.gdshader), filmic
+## tonemap, bloom so signs and neon bleed, SSAO in the corners, and a
+## volumetric haze the lamps cut shafts through. Low ambient so the three
+## light tiers still read by eye; Atmosphere scales it by tier.
+static func night() -> Environment:
+	var env := Environment.new()
+	var sky := Sky.new()
+	var sm := ShaderMaterial.new()
+	sm.shader = load("res://assets/shaders/sky.gdshader") as Shader
+	sky.sky_material = sm
+	env.background_mode = Environment.BG_SKY
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.42, 0.40, 0.62)
+	env.ambient_light_energy = 0.5
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_exposure = 1.0
+	env.glow_enabled = true
+	env.glow_intensity = 0.75
+	env.glow_strength = 1.1
+	env.glow_bloom = 0.06
+	env.glow_hdr_threshold = 1.05
+	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SCREEN
+	for i in [2, 3, 4, 5]:
+		env.set_glow_level(i, true)
+	env.ssao_enabled = true
+	env.ssao_radius = 1.2
+	env.ssao_intensity = 2.2
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.05, 0.04, 0.09)
+	env.fog_density = 0.004
+	env.fog_sky_affect = 0.35
+	env.volumetric_fog_enabled = true
+	env.volumetric_fog_density = 0.0045
+	env.volumetric_fog_albedo = Color(0.55, 0.52, 0.7)
+	env.volumetric_fog_emission = Color(0.006, 0.002, 0.01)
+	env.volumetric_fog_emission_energy = 1.0
+	env.volumetric_fog_length = 80.0
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.12
+	env.adjustment_saturation = 1.2
+	return env
 
 static func _streets(root: Node3D) -> void:
 	var c := BuildUtils.STREET
@@ -77,7 +108,12 @@ static func _boundary(root: Node3D) -> void:
 	var c := BuildUtils.WALL_DARK
 	var y := BOUND_H * 0.5
 	var segs := [
-		[Vector3(0, y, -40.2), Vector3(41.2, BOUND_H, 0.4)],       # avenue north
+		# Avenue north, now the Scoring Annex's south wall (SecAnnex): the
+		# checkpoint gap x [-3, 3] and a 1.0m crawl under it at x [14, 15.2].
+		[Vector3(-11.8, y, -40.2), Vector3(17.6, BOUND_H, 0.4)],
+		[Vector3(8.5, y, -40.2), Vector3(11.0, BOUND_H, 0.4)],
+		[Vector3(17.9, y, -40.2), Vector3(5.4, BOUND_H, 0.4)],
+		[Vector3(14.6, 1.0 + (BOUND_H - 1.0) * 0.5, -40.2), Vector3(1.2, BOUND_H - 1.0, 0.4)],
 		[Vector3(-20.2, y, -32.5), Vector3(0.4, BOUND_H, 15.4)],   # avenue west
 		[Vector3(20.2, y, -32.5), Vector3(0.4, BOUND_H, 15.4)],    # avenue east
 		[Vector3(-34.4, y, -24.6), Vector3(11.2, BOUND_H, 0.4)],   # alley north cap
