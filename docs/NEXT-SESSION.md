@@ -21,12 +21,10 @@ feel fixes (below).
 
 ## State of the repo — READ THIS
 
-Branch `level-one-holloway-road`. Last commit `8cb18cf`. **Everything since the verticality
-pass (`4c9be91`) is UNCOMMITTED** — 92 paths: the whole asset layer (`assets/`, ~35MB of CC0
-models/textures/audio/fonts), ~25 new scripts, and edits across ~60 existing files. Nothing
-is pushed; nothing is merged to `main`. Commit/push only when Gregory asks. When he does:
-`assets/` should be committed (the game needs it); `screenshots/` and `blender/` stay
-untracked. Don't commit paid audio dropped into `assets/audio/sfx/` (see ASSETS.md).
+Branch `level-one-holloway-road`. Everything through round 6c is committed (`0b4200c`,
+incl. `assets/`). Nothing is pushed; nothing is merged to `main`. Commit/push only when
+Gregory asks. `screenshots/` and `blender/` stay untracked. Don't commit paid audio dropped
+into `assets/audio/sfx/` (see ASSETS.md).
 
 All three suites were 0 problems at handoff (`smoketest`, `smoketest_compound`,
 `smoketest_compound_systems`). Visual checks were screenshots only; **nothing was playtested

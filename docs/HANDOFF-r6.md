@@ -7,10 +7,8 @@ Detail per change is in `docs/BUILD-LOG.md` ("Playtest round 6" and "Round 6c").
 
 ## State of the repo
 
-- Branch `level-one-holloway-road`, last commit `8cb18cf`. **Everything since r4 is
-  uncommitted** (~155 paths, plus every new file below). Commit/push only when he asks.
-  `screenshots/` stays untracked; `assets/` (incl. `assets/textures/gen/`,
-  `assets/models/custom/`, `assets/shaders/`) must be committed.
+- Branch `level-one-holloway-road`. Everything through round 6c is committed (`0b4200c`).
+  Not pushed. `screenshots/` and `blender/` stay untracked.
 - All seven suites were 0 problems at handoff:
   `smoketest`, `smoketest_compound`, `smoketest_compound_systems`, `smoketest_nav`,
   `smoketest_civilians`, `smoketest_guard_stuck`, `smoketest_jumps`

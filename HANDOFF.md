@@ -2,7 +2,7 @@
 
 **Status (2026-10-01):** past-graybox pass plus four rounds of playtest fixes — real main
 menu, first-person hand + pistol (own SubViewport camera), CC0 textures/props/skyline,
-alarm stations + 3D sirens, helipad exit, wall-vault bug fixed. **All uncommitted.**
+alarm stations + 3D sirens, helipad exit, wall-vault bug fixed. Committed through round 6c as `0b4200c`.
 Read `docs/NEXT-SESSION.md` first.
 
 **Earlier status:** Level one, **HOLLOWAY ROAD**, is built and playable (main menu → NEW GAME). Regular only, base kit, no lockpicks: a long approach through an estate, a
