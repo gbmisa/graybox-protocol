@@ -1,24 +1,44 @@
 class_name Humanoid
 extends Node3D
-## A crude low-poly person — Cruelty Squad's gallery of lumpy, garishly
-## coloured bodies rather than anyone's idea of a soldier. Feet at y=0, head
-## centre at y=1.95 (what the guard's head collider is cut to), facing -z.
-## Built from boxes on pivots so the limbs can swing when it walks.
+## A person: guard, civilian, the target. r7 ("do medium graphics for the
+## models"): the CC0 Quaternius base bodies (~12.5k tris, rigged) with the
+## Universal Animation Library's moves, baked by tools/blender/people.py into
+## assets/models/people/. Still Cruelty Squad's crowd, not anyone's soldier:
+## garish flat clothes painted by person.gdshader from a baked mask, skin
+## tints from normal to sickly green, hats and helmets on the head bone.
+##
+## Feet at y=0, head centre at y~1.95 (what the guard's head collider is cut
+## to — hence SCALE), facing -z.
 ##
 ## `style` keys (all optional): skin, top, bottom, accent, visor (Color),
-## armed (bool), scale (float), bulk (float, torso width), tall (float, head
-## height multiplier), hat (bool).
+## armed (bool), scale (float), bulk (float, girth), hat (bool), female
+## (bool), hair (int, -1 = none), helmet (bool).
+
+const MODELS := ["res://assets/models/people/person_male.glb",
+	"res://assets/models/people/person_female.glb"]
+const SHADER := preload("res://scripts/world/person.gdshader")
+const OUTLINE := preload("res://scripts/world/person_outline.gdshader")
+const SCALE := 1.15   # 1.81m model -> head at ~1.95
+const HAIR := ["Hair_Buzzed", "Hair_SimpleParted", "Hair_Long", "Hair_Buns",
+	"Hair_BuzzedFemale", "Hair_Beard"]
+## Default flat skin colour when a style names none.
+const BASE_SKIN := Color(0.78, 0.56, 0.44)
+## The hair texture is near-white and made to be tinted: browns, black,
+## blonde, and the odd Cruelty Squad dye job.
+const HAIR_COLORS := [Color(0.25, 0.16, 0.10), Color(0.08, 0.07, 0.07), Color(0.85, 0.70, 0.40),
+	Color(0.45, 0.22, 0.10), Color(0.95, 0.20, 0.55), Color(0.30, 0.90, 0.40), Color(0.55, 0.55, 0.58)]
+const LOOPS := ["idle", "walk", "jog", "sprint", "pistol_idle", "aim", "cower", "talk"]
 
 var armed: bool = false
-var _legs: Array[Node3D] = []
-var _arms: Array[Node3D] = []
-var _torso: MeshInstance3D
-var _head: MeshInstance3D
-var _uniform: Array[StandardMaterial3D] = []   # what tint() recolours
-var _all: Array[StandardMaterial3D] = []
-var _base: Dictionary = {}                     # material -> its own colour
-var _phase: float = 0.0
-var _amp: float = 0.0
+var _model: Node3D
+var _anim: AnimationPlayer
+var _mat: ShaderMaterial
+var _skel: Skeleton3D
+var _panic := false
+var _aiming := false
+var _dead := false
+var _current := ""
+var _accents: Array[StandardMaterial3D] = []
 
 static func create(parent: Node3D, style: Dictionary) -> Humanoid:
 	var h := Humanoid.new()
@@ -27,139 +47,182 @@ static func create(parent: Node3D, style: Dictionary) -> Humanoid:
 	h._build(style)
 	return h
 
-## A garish random civilian: clashing flat colours, wrong-sized everything.
+## A garish random civilian: clashing flat colours, odd sizes, any haircut.
 static func random_style(rng: RandomNumberGenerator) -> Dictionary:
 	var skins := [Color(0.85, 0.66, 0.52), Color(0.62, 0.42, 0.30), Color(0.45, 0.30, 0.22),
 		Color(0.72, 0.85, 0.40), Color(0.80, 0.55, 0.70), Color(0.55, 0.75, 0.85)]
 	var loud := [Color(0.95, 0.15, 0.55), Color(0.15, 0.85, 0.35), Color(0.98, 0.80, 0.10),
 		Color(0.20, 0.45, 0.95), Color(0.95, 0.45, 0.10), Color(0.60, 0.20, 0.85),
 		Color(0.10, 0.80, 0.80)]
+	var female := rng.randf() < 0.5
 	return {
 		"skin": skins[rng.randi() % skins.size()],
 		"top": loud[rng.randi() % loud.size()],
 		"bottom": loud[rng.randi() % loud.size()].darkened(0.45),
 		"accent": loud[rng.randi() % loud.size()],
-		"visor": Color(0.05, 0.05, 0.05),
-		"scale": rng.randf_range(0.88, 1.08),
-		"bulk": rng.randf_range(0.85, 1.35),
-		"hat": rng.randf() < 0.4,
+		"scale": rng.randf_range(0.9, 1.06),
+		"bulk": rng.randf_range(0.92, 1.25),
+		"hat": rng.randf() < 0.3,
+		"female": female,
+		"hair": rng.randi() % (5 if female else 6) if rng.randf() < 0.9 else -1,
 	}
 
 func _build(s: Dictionary) -> void:
-	var skin: Color = s.get("skin", Color(0.8, 0.6, 0.5))
-	var top: Color = s.get("top", Color(0.6, 0.1, 0.1))
-	var bottom: Color = s.get("bottom", Color(0.12, 0.12, 0.2))
-	var accent: Color = s.get("accent", Color(0.9, 0.8, 0.1))
-	var visor: Color = s.get("visor", Color(0.1, 0.9, 1.0))
-	var bulk: float = s.get("bulk", 1.0)
 	armed = bool(s.get("armed", false))
-	scale = Vector3.ONE * float(s.get("scale", 1.0))
-	# Pelvis + torso + a slab across the chest in the accent colour.
-	_part(self, Vector3(0.48 * bulk, 0.22, 0.30), Vector3(0, 0.98, 0), bottom, false)
-	_torso = _part(self, Vector3(0.62 * bulk, 0.62, 0.34), Vector3(0, 1.38, 0), top, true)
-	_part(self, Vector3(0.64 * bulk, 0.14, 0.36), Vector3(0, 1.58, 0), accent, true)
-	_part(self, Vector3(0.12, 0.10, 0.12), Vector3(0, 1.74, 0), skin, false)   # neck
-	_head = _part(self, Vector3(0.36, 0.35, 0.35), Vector3(0, 1.95, 0), skin, false)
-	_face(int(s.get("face", randi() % FACES)))
-	_part(_head, Vector3(0.30, 0.10, 0.04), Vector3(0, 0.03, -0.18), visor, false, true)
-	if bool(s.get("hat", false)):
-		_part(_head, Vector3(0.42, 0.08, 0.42), Vector3(0, 0.2, 0), accent, false)
-		_part(_head, Vector3(0.28, 0.14, 0.28), Vector3(0, 0.3, 0), accent, false)
-	for sx in [-1.0, 1.0]:
-		var leg := Node3D.new()
-		leg.position = Vector3(0.15 * sx * bulk, 0.92, 0)
-		add_child(leg)
-		_part(leg, Vector3(0.22, 0.90, 0.24), Vector3(0, -0.45, 0), bottom, false)
-		_part(leg, Vector3(0.25, 0.10, 0.34), Vector3(0, -0.88, -0.05), Color(0.08, 0.08, 0.08), false)
-		_legs.append(leg)
-		var arm := Node3D.new()
-		arm.position = Vector3((0.42 * bulk) * sx, 1.64, 0)
-		add_child(arm)
-		_part(arm, Vector3(0.18, 0.68, 0.18), Vector3(0, -0.34, 0), top, true)
-		_part(arm, Vector3(0.16, 0.14, 0.16), Vector3(0, -0.72, 0), skin, false)
-		_arms.append(arm)
+	var female := bool(s.get("female", false))
+	_model = (load(MODELS[1 if female else 0]) as PackedScene).instantiate() as Node3D
+	add_child(_model)
+	_model.rotation.y = PI   # the glb faces +z
+	var bulk := float(s.get("bulk", 1.0))
+	var sc := SCALE * float(s.get("scale", 1.0))
+	_model.scale = Vector3(sc * lerpf(1.0, bulk, 0.6), sc, sc * lerpf(1.0, bulk, 0.4))
+	_skel = _model.find_child("Skeleton3D", true, false) as Skeleton3D
+	_anim = _model.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	for n in LOOPS:
+		if _anim.has_animation(n):
+			_anim.get_animation(n).loop_mode = Animation.LOOP_LINEAR
+	_skin(s)
+	var hair := int(s.get("hair", 0))
+	var hc: Color = s.get("hair_color", HAIR_COLORS[randi() % HAIR_COLORS.size()])
+	for i in HAIR.size():
+		var mi := _skel.find_child(HAIR[i], false, false) as MeshInstance3D
+		if mi != null:
+			mi.visible = i == hair
+			if i == hair:
+				var hm := (mi.mesh.surface_get_material(0) as StandardMaterial3D).duplicate() as StandardMaterial3D
+				# Flat, like everything else in the level (r8).
+				hm.albedo_texture = null
+				hm.normal_enabled = false
+				hm.roughness = 1.0
+				hm.albedo_color = hc
+				mi.material_override = hm
+	if bool(s.get("helmet", false)):
+		_helmet(s.get("accent", Color.YELLOW), s.get("visor", Color(0.1, 0.9, 1.0)))
+	elif bool(s.get("hat", false)):
+		_cap(s.get("accent", Color.YELLOW))
 	if armed:
-		# Right arm up and out, a blocky blaster in the fist.
-		_arms[1].rotation.x = deg_to_rad(-80.0)
-		_part(_arms[1], Vector3(0.10, 0.16, 0.52), Vector3(0, -0.78, -0.2), Color(0.1, 0.1, 0.12), false)
+		_pistol()
+	_play("pistol_idle" if armed else "idle")
+	_anim.seek(randf() * 2.0, true)
 
-## One box. `uniform` parts are recoloured by tint(); `glow` is emissive.
-## A drawn face on the front of the head (tools/gen/make_textures.py), under
-## the visor. One material per face, shared.
-const FACES := 8
-static var _face_mats: Dictionary = {}
+func _skin(s: Dictionary) -> void:
+	var body := _skel.find_child("Body", false, false) as MeshInstance3D
+	var src := body.mesh.surface_get_material(0) as StandardMaterial3D
+	_mat = ShaderMaterial.new()
+	_mat.shader = SHADER
+	if src != null:
+		_mat.set_shader_parameter("skin_tex", src.albedo_texture)
+	var skin: Color = s.get("skin", BASE_SKIN)
+	_mat.set_shader_parameter("skin_col", Vector3(skin.r, skin.g, skin.b))
+	_mat.set_shader_parameter("top_col", s.get("top", Color(0.6, 0.1, 0.1)))
+	_mat.set_shader_parameter("bottom_col", s.get("bottom", Color(0.12, 0.12, 0.2)))
+	_mat.set_shader_parameter("shoe_col", Color(0.05, 0.05, 0.06))
+	var ink := ShaderMaterial.new()
+	ink.shader = OUTLINE
+	_mat.next_pass = ink
+	body.material_override = _mat
 
-func _face(i: int) -> void:
-	if not _face_mats.has(i):
-		var m := StandardMaterial3D.new()
-		m.albedo_texture = load("res://assets/textures/gen/face_%d.png" % i) as Texture2D
-		m.roughness = 0.8
-		_face_mats[i] = m
+## Something worn or held, on a bone.
+func _on_bone(bone: String) -> BoneAttachment3D:
+	var at := BoneAttachment3D.new()
+	at.bone_name = bone
+	_skel.add_child(at)
+	return at
+
+func _box(parent: Node3D, pos: Vector3, size: Vector3, color: Color, glow := false,
+		dome := false) -> void:
 	var mi := MeshInstance3D.new()
-	var q := QuadMesh.new()
-	q.size = Vector2(0.34, 0.33)
-	mi.mesh = q
-	mi.material_override = _face_mats[i]
-	mi.position = Vector3(0, 0, -0.177)
-	mi.rotation.y = PI
-	_head.add_child(mi)
-
-func _part(parent: Node3D, size: Vector3, pos: Vector3, color: Color,
-		uniform: bool, glow: bool = false) -> MeshInstance3D:
-	var mi := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = size
-	mi.mesh = bm
+	if dome:
+		var sm := SphereMesh.new()
+		sm.radius = size.x * 0.5
+		sm.height = size.y
+		sm.is_hemisphere = true
+		mi.mesh = sm
+	else:
+		var bm := BoxMesh.new()
+		bm.size = size
+		mi.mesh = bm
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
-	m.roughness = 1.0
+	m.roughness = 0.7
 	if glow:
 		m.emission_enabled = true
 		m.emission = color
-		m.emission_energy_multiplier = 1.5
+		m.emission_energy_multiplier = 1.4
 	mi.material_override = m
 	mi.position = pos
 	parent.add_child(mi)
-	_all.append(m)
-	_base[m] = color
-	if uniform:
-		_uniform.append(m)
-	return mi
+	_accents.append(m)
 
-## Swing the limbs for the current ground speed (m/s).
-func animate(speed: float, delta: float) -> void:
-	var want := clampf(speed / 4.0, 0.0, 1.0) * 0.9
-	_amp = lerpf(_amp, want, minf(1.0, delta * 10.0))
-	_phase += speed * delta * 2.4
-	var swing := sin(_phase) * _amp
-	_legs[0].rotation.x = swing
-	_legs[1].rotation.x = -swing
-	_arms[0].rotation.x = -swing * 0.8
-	if not armed:
-		_arms[1].rotation.x = swing * 0.8
-	# A little bounce and lean when running.
-	_torso.position.y = 1.38 + absf(sin(_phase)) * 0.03 * _amp
+## Bone space is the pack's: the head bone sits at the top of the neck, its
+## +y runs up through the skull, +z out of the face (the model faces +z
+## before _model's turn). Hand bones: +y along the fingers, +z thumb side.
+func _cap(color: Color) -> void:
+	var h := _on_bone("Head")
+	_box(h, Vector3(0.02, 0.16, -0.02), Vector3(0.23, 0.11, 0.23), color, false, true)
+	_box(h, Vector3(0.02, 0.17, 0.11), Vector3(0.18, 0.015, 0.09), color.darkened(0.3))
 
-## Hands up and shaking — a panicking civilian. Arms stay raised.
-func set_panic(on: bool) -> void:
-	if armed:
+func _helmet(color: Color, visor: Color) -> void:
+	var h := _on_bone("Head")
+	_box(h, Vector3(0.02, 0.12, -0.03), Vector3(0.27, 0.17, 0.27), color.darkened(0.55), false, true)
+	_box(h, Vector3(0.02, 0.10, 0.10), Vector3(0.2, 0.04, 0.03), visor, true)
+
+func _pistol() -> void:
+	var hand := _on_bone("hand_r")
+	_box(hand, Vector3(0.0, 0.11, 0.045), Vector3(0.035, 0.18, 0.045), Color(0.08, 0.08, 0.09))
+	_box(hand, Vector3(0.0, 0.06, 0.0), Vector3(0.03, 0.04, 0.09), Color(0.08, 0.08, 0.09))
+
+func _play(n: String, blend := 0.2) -> void:
+	if n == _current or not _anim.has_animation(n):
 		return
-	_arms[0].rotation.z = deg_to_rad(40.0) if on else 0.0
-	_arms[1].rotation.z = deg_to_rad(-40.0) if on else 0.0
+	_current = n
+	_anim.play(n, blend)
+
+## Pick the move for the current ground speed (m/s).
+func animate(speed: float, _delta: float) -> void:
+	if _dead:
+		return
+	if _aiming and speed < 1.5:
+		_play("aim", 0.12)
+		_anim.speed_scale = 1.0
+		return
+	if speed < 0.3:
+		_play("cower" if _panic else ("pistol_idle" if armed else "idle"))
+		_anim.speed_scale = 1.0
+	elif speed < 2.4:
+		_play("walk")
+		_anim.speed_scale = clampf(speed / 1.5, 0.6, 1.6)
+	elif speed < 5.0 and not _panic:
+		_play("jog")
+		_anim.speed_scale = clampf(speed / 3.6, 0.7, 1.4)
+	else:
+		_play("sprint")
+		_anim.speed_scale = clampf(speed / 5.5, 0.7, 1.3)
+
+## A panicking civilian cowers when still and sprints when not.
+func set_panic(on: bool) -> void:
+	_panic = on
+
+## The guard raising his gun (the aim tell): the aim pose while it lasts.
+func set_aim(on: bool) -> void:
+	_aiming = on
+
+## Fall down for good. The caller switches the colliders off.
+func die() -> void:
+	if _dead:
+		return
+	_dead = true
+	_anim.speed_scale = 1.0
+	_current = ""
+	_play("death", 0.1)
 
 func tint(color: Color) -> void:
-	for m in _uniform:
-		m.albedo_color = color
+	_mat.set_shader_parameter("tint_col", color)
+	_mat.set_shader_parameter("tint_mix", 0.85)
 
 func untint() -> void:
-	for m in _uniform:
-		m.albedo_color = _base[m]
+	_mat.set_shader_parameter("tint_mix", 0.0)
 
 func flash(tweener: Node) -> void:
 	var tw := tweener.create_tween()
-	tw.set_parallel(true)
-	for m in _all:
-		tw.tween_property(m, "albedo_color", Color.WHITE, 0.05)
-	tw.chain().set_parallel(true)
-	for m in _all:
-		tw.tween_property(m, "albedo_color", _base[m], 0.15)
+	tw.tween_method(func(v: float) -> void: _mat.set_shader_parameter("flash", v), 1.0, 0.0, 0.2)

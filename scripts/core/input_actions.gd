@@ -15,7 +15,17 @@ const KEYS := {
 	"sprint": [KEY_SHIFT],
 	"crouch": [KEY_C, KEY_CTRL],
 	"squeeze": [KEY_X],
-	"ability": [KEY_E, KEY_Q],
+	"ability": [KEY_E],
+	"grapple": [KEY_Q],
+	"kick": [KEY_V],
+	"night_vision": [KEY_N],
+	"reload": [KEY_R],
+	"hud_help": [KEY_F1],
+	"weapon_1": [KEY_1],
+	"weapon_2": [KEY_2],
+	"weapon_3": [KEY_3],
+	"weapon_4": [KEY_4],
+	"weapon_5": [KEY_5],
 	"interact": [KEY_F],
 	"pause": [KEY_ESCAPE],
 }
@@ -23,6 +33,9 @@ const KEYS := {
 const MOUSE := {
 	"attack": MOUSE_BUTTON_LEFT,
 	"alt_attack": MOUSE_BUTTON_RIGHT,
+	"weapon_prev": MOUSE_BUTTON_WHEEL_UP,
+	"weapon_next": MOUSE_BUTTON_WHEEL_DOWN,
+	"kick": MOUSE_BUTTON_MIDDLE,
 }
 
 static func register() -> void:

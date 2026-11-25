@@ -56,3 +56,15 @@ func _escalate() -> void:
 		guard.enter_alert()
 	elif guard.detect >= 0.35 and guard.state == Guard.State.PATROL:
 		guard.enter_suspicious(guard.last_seen, guard.detect)
+
+## r8 (combat review): walls muffle. Through solid geometry a noise carries
+## only half its radius. Solid means blocked at knee AND head height, so a
+## jersey barrier doesn't hush a rifle (noise positions are at the feet).
+func muffled(pos: Vector3, radius: float) -> bool:
+	if radius <= 0.0:
+		return false
+	var head := guard.global_position + Vector3(0, 1.6, 0)
+	if head.distance_to(pos) <= radius * 0.5:
+		return false
+	return not guard.ray(pos + Vector3(0, 0.3, 0), head).is_empty() \
+		and not guard.ray(pos + Vector3(0, 1.6, 0), head).is_empty()

@@ -5,7 +5,8 @@ extends SceneTree
 ## unkillable, and reports any guard that stands still for STILL_TIME while
 ## he is alerted or investigating. Shooting them all also brings the alarm,
 ## so each spot is a test of the defence plan too: no clump of CLUMP guards
-## within CLUMP_R of each other at the end, and every post is reachable.
+## within CLUMP_R of each other at the end (when the alarm went up), and every
+## post is reachable.
 ##
 ##     godot --headless --path . --script res://tools/smoketest_guard_stuck.gd [-- x y z]
 
@@ -19,7 +20,7 @@ var SPOTS := [
 	Vector3(-6, 0.1, 18),     # courtyard, south of the mast
 	Vector3(0, 0.1, 28),      # verge, outside the south wall
 	Vector3(13, 0.1, -8),     # the alley
-	Vector3(0, 0.1, -43),     # annex checkpoint
+	Vector3(0, 0.1, -55),     # annex: Consent Way
 ]
 
 var _frame := 0
@@ -86,8 +87,18 @@ func _physics_process(delta: float) -> bool:
 	_ok(_flagged.is_empty(), "spot %s: no guard stands still for %.0fs while alerted (%d stuck)" % [
 		_v(SPOTS[_spot]), STILL_TIME, _flagged.size()])
 	var worst := _worst_clump()
-	_ok(worst.size() < CLUMP, "spot %s: no %d guards within %.1fm of each other %s" % [
-		_v(SPOTS[_spot]), CLUMP, CLUMP_R, worst])
+	if worst.size() >= CLUMP:
+		for g in _game.guards:
+			if (g as Guard).post_id in worst:
+				print("    %s at %s hold %s alert %s" % [(g as Guard).post_id, (g as Guard).global_position.snapped(Vector3.ONE * 0.1), (g as Guard).hold_pos, (g as Guard).state])
+	# The clump check is the defence plan's (posts spread them). r8: guards
+	# crowding you fight instead of running, so with no alarm raised a mob
+	# around the player is the intended fight, not a failure.
+	if _game.alert.is_alarm():
+		_ok(worst.size() < CLUMP, "spot %s: no %d guards within %.1fm of each other %s" % [
+			_v(SPOTS[_spot]), CLUMP, CLUMP_R, worst])
+	else:
+		print("  --    spot %s: no alarm raised (guards fought); clump check skipped" % _v(SPOTS[_spot]))
 	var held := 0
 	for g in _game.guards:
 		if (g as Guard).alive and (g as Guard).hold_pos != Vector3.INF:
@@ -144,7 +155,7 @@ func _check_posts() -> void:
 		# From the courtyard, or for the annex's posts from the annex yard.
 		var end := Vector3.INF
 		var path := PackedVector3Array()
-		for from in [Vector3(0, 0, 14), Vector3(0, 0, -43)]:
+		for from in [Vector3(0, 0, 14), Vector3(0, 0, -55)]:
 			path = GuardNav.path(w, from, at)
 			end = path[path.size() - 1] if path.size() > 0 else Vector3.INF
 			if end.distance_to(at) < 1.0:

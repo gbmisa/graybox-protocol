@@ -11,7 +11,7 @@ extends RefCounted
 ##               (11.2) along x [22.5, 24.5] — it was Chad's 2.2/2.4 chain
 ##               only, and the Regular stood under it looking up ("I can't
 ##               get up to what I think used to be the helipad").
-##   E3 car      avenue (0, 0, -34.4), nose to the gate, headlights on.
+##   (E3, the avenue car, removed in r9: it was in the way of the annex.)
 ## The trigger spheres are MissionCompoundData.EXTRACTIONS.
 
 const DECK_Y := 11.2
@@ -19,7 +19,6 @@ const ROOF_Y := 6.6
 
 static func build(root: Node3D, game: GrayboxGame) -> void:
 	_van(root)
-	_car(root)
 	_helipad_stair(root)
 	_helicopter(root)
 
@@ -28,11 +27,6 @@ static func _van(root: Node3D) -> void:
 	BuildUtils.lamp(root, Vector3(-37.2, -1.2, 5.0), BuildUtils.LAMP_SERVICE, 1.0, 6.0)
 	_headlights(root, Vector3(-38.7, -1.4, 8.8), 0.0, 10.0)
 	engine_loop(root, Vector3(-38.7, -1.4, 6), "res://assets/audio/scifi/engineCircular_000.ogg", -8.0)
-
-static func _car(root: Node3D) -> void:
-	Props.vehicle(root, "car/sedan", Vector3(0, 0, -34.4), 0.0)
-	_headlights(root, Vector3(0, 0.7, -32.1), 0.0, 14.0)
-	engine_loop(root, Vector3(0, 0.6, -34.4), "res://assets/audio/scifi/engineCircular_000.ogg", -10.0)
 
 ## Two spots looking the way the vehicle faces (yaw 0 = +z).
 static func _headlights(root: Node3D, front: Vector3, yaw: float, reach: float) -> void:

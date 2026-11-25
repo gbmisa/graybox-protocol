@@ -2,7 +2,7 @@ class_name ViewmodelStage
 extends RefCounted
 ## Where `PlayerViewmodel` is drawn: a SubViewport with its own narrow-FOV
 ## camera, on a CanvasLayer under the HUD, staged far from the level with its
-## own lights (see the viewmodel's header for why). Also the glove.
+## own lights (see the viewmodel's header for why).
 
 ## Builds the stage under `player`, parents `rig` to its camera, and returns
 ## the camera.
@@ -40,16 +40,24 @@ static func build(player: Player, rig: Node3D, stage_pos: Vector3, fov: float,
 	# night one, so without these the gun is a flat black cut-out.
 	var key := DirectionalLight3D.new()
 	key.light_cull_mask = layer
-	key.light_energy = 1.3
+	key.light_energy = 1.9
 	key.light_color = Color(1.0, 0.95, 0.88)
 	key.rotation_degrees = Vector3(-40, 25, 0)
 	stage.add_child(key)
 	var fill := DirectionalLight3D.new()
 	fill.light_cull_mask = layer
-	fill.light_energy = 0.45
+	fill.light_energy = 0.8
 	fill.light_color = Color(0.6, 0.7, 1.0)
 	fill.rotation_degrees = Vector3(-10, -120, 0)
 	stage.add_child(fill)
+	# r8 (review: "untextured blocks look unlit"): a hot rim from the front
+	# right, the colour of the night's neon, so edges separate from the world.
+	var rim := DirectionalLight3D.new()
+	rim.light_cull_mask = layer
+	rim.light_energy = 0.7
+	rim.light_color = Color(1.0, 0.75, 0.92)
+	rim.rotation_degrees = Vector3(-15, 200, 0)
+	stage.add_child(rim)
 	# And a dim one riding on the rig itself.
 	var l := OmniLight3D.new()
 	l.position = Vector3(0.05, 0.08, 0.05)
@@ -66,14 +74,10 @@ static func _environment() -> Environment:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_CLEAR_COLOR
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.55, 0.6, 0.72)
-	env.ambient_light_energy = 0.6
+	env.ambient_light_color = Color(0.5, 0.48, 0.7)
+	env.ambient_light_energy = 0.45
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.2
 	return env
 
-## Matte near-black, a little blue so it still reads against a dark wall. Bare
-## WRAD skin curled into a fist read as a pink lump.
-static func glove() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.09, 0.09, 0.11)
-	m.roughness = 0.85
-	return m

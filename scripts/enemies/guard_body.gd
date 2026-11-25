@@ -1,6 +1,6 @@
 class_name GuardBody
 extends Node
-## Guard visuals: the low-poly box figure, its collision capsule, the state
+## Guard visuals: the figure (Humanoid), its collision capsule, the state
 ## indicator above its head, hit flash and the death animation.
 
 const BASE_COLOR := Color(0.75, 0.08, 0.14)
@@ -24,10 +24,16 @@ func setup(p_guard: Guard) -> void:
 
 func _build_meshes() -> void:
 	# Security: crimson jacket, hi-vis slab, sickly green skin, cyan visor.
+	# r8 (review: "guards are identical clones"): same uniform, different men —
+	# build, height, skin and the helmet's paint vary per guard.
+	var skins := [Color(0.62, 0.78, 0.38), Color(0.78, 0.62, 0.48), Color(0.5, 0.36, 0.26),
+		Color(0.85, 0.7, 0.6), Color(0.7, 0.75, 0.55)]
+	var helmets := [Color(0.98, 0.85, 0.10), Color(0.98, 0.6, 0.1), Color(0.9, 0.9, 0.2)]
 	figure = Humanoid.create(guard, {
-		"skin": Color(0.62, 0.78, 0.38), "top": BASE_COLOR,
-		"bottom": Color(0.10, 0.10, 0.22), "accent": Color(0.98, 0.85, 0.10),
-		"visor": Color(0.1, 0.95, 1.0), "armed": true, "bulk": 1.15,
+		"skin": skins[randi() % skins.size()], "top": BASE_COLOR,
+		"bottom": Color(0.10, 0.10, 0.22), "accent": helmets[randi() % helmets.size()],
+		"visor": Color(0.1, 0.95, 1.0), "armed": true, "bulk": randf_range(1.0, 1.35),
+		"scale": randf_range(0.97, 1.03), "helmet": true, "hair": -1,
 	})
 
 func _build_collision() -> void:
@@ -93,6 +99,8 @@ func set_indicator(text: String, color: Color) -> void:
 ## reticle for the duration of the aim, which is the only cue the player gets
 ## that a shot is coming — and the thing the Wizard's dash is timed against.
 func set_aiming(on: bool) -> void:
+	if figure != null:
+		figure.set_aim(on)
 	if on:
 		set_indicator("◎", AIM_COLOR)
 		_tint(AIM_COLOR)
@@ -113,9 +121,13 @@ func flash_hit() -> void:
 		figure.flash(guard)
 
 func play_death() -> void:
+	# r8: corpses stay (Cruelty Squad: you eat them), stop falling, and drop
+	# the guard's ammo.
+	guard.add_to_group("corpses")
+	guard.set_physics_process(false)
+	AmmoPickup.drop(guard.game, guard.global_position, WeaponData.DROP)
 	set_indicator("", Color.YELLOW)
 	_bark.visible = false
-	var tw := guard.create_tween()
-	tw.tween_property(guard, "rotation:x", -PI / 2.0, 0.4)
-	tw.tween_interval(6.0)
-	tw.tween_callback(guard.queue_free)
+	if figure != null:
+		figure.die()
+

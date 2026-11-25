@@ -37,7 +37,7 @@ static func _environment(root: Node3D) -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52, -35, 0)
 	sun.light_color = Color(0.70, 0.78, 1.0)
-	sun.light_energy = 0.3
+	sun.light_energy = 0.7
 	sun.shadow_enabled = true
 	root.add_child(sun)
 
@@ -54,35 +54,47 @@ static func night() -> Environment:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.42, 0.40, 0.62)
-	env.ambient_light_energy = 0.5
+	# r8 history: r7 was "extremely dark", the first r8 lift "washed out ...
+	# doesn't distinguish stealthy areas". So: a deep night with real blacks
+	# (this ambient = DARK), and visibility carried by hot lamp pools (LIT
+	# boxes get warm fill, every lamp has a bulb) — the graphics review's
+	# "crush the night, make LIT read as light".
+	env.ambient_light_color = Color(0.4, 0.36, 0.66)
+	env.ambient_light_energy = 0.6
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.0
+	env.tonemap_exposure = 1.45
 	env.glow_enabled = true
-	env.glow_intensity = 0.75
-	env.glow_strength = 1.1
-	env.glow_bloom = 0.06
-	env.glow_hdr_threshold = 1.05
-	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SCREEN
-	for i in [2, 3, 4, 5]:
-		env.set_glow_level(i, true)
+	# r7: "the bloom is way too high". Only real emitters (neon, the board,
+	# lamps' bulbs) glow now, tight, in the small levels; no wide haze.
+	env.glow_intensity = 0.3
+	env.glow_strength = 0.8
+	env.glow_bloom = 0.0
+	env.glow_hdr_threshold = 1.6
+	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
+	for i in 7:
+		env.set_glow_level(i, i == 1 or i == 2)
+	# Wet ground and puddles pick up the neon (r8 review).
+	env.ssr_enabled = true
+	env.ssr_max_steps = 48
+	env.ssr_fade_in = 0.15
+	env.ssr_fade_out = 2.0
 	env.ssao_enabled = true
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 2.2
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.05, 0.04, 0.09)
+	env.fog_light_color = Color(0.06, 0.045, 0.11)
 	env.fog_density = 0.004
 	env.fog_sky_affect = 0.35
 	env.volumetric_fog_enabled = true
 	env.volumetric_fog_density = 0.0045
-	env.volumetric_fog_albedo = Color(0.55, 0.52, 0.7)
+	env.volumetric_fog_albedo = Color(0.3, 0.27, 0.42)
 	env.volumetric_fog_emission = Color(0.006, 0.002, 0.01)
 	env.volumetric_fog_emission_energy = 1.0
 	env.volumetric_fog_length = 80.0
 	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.12
-	env.adjustment_saturation = 1.2
+	env.adjustment_contrast = 1.3
+	env.adjustment_saturation = 1.15
 	return env
 
 static func _streets(root: Node3D) -> void:
@@ -108,12 +120,7 @@ static func _boundary(root: Node3D) -> void:
 	var c := BuildUtils.WALL_DARK
 	var y := BOUND_H * 0.5
 	var segs := [
-		# Avenue north, now the Scoring Annex's south wall (SecAnnex): the
-		# checkpoint gap x [-3, 3] and a 1.0m crawl under it at x [14, 15.2].
-		[Vector3(-11.8, y, -40.2), Vector3(17.6, BOUND_H, 0.4)],
-		[Vector3(8.5, y, -40.2), Vector3(11.0, BOUND_H, 0.4)],
-		[Vector3(17.9, y, -40.2), Vector3(5.4, BOUND_H, 0.4)],
-		[Vector3(14.6, 1.0 + (BOUND_H - 1.0) * 0.5, -40.2), Vector3(1.2, BOUND_H - 1.0, 0.4)],
+		# Avenue north is the annex district's south wall (SecAnnex).
 		[Vector3(-20.2, y, -32.5), Vector3(0.4, BOUND_H, 15.4)],   # avenue west
 		[Vector3(20.2, y, -32.5), Vector3(0.4, BOUND_H, 15.4)],    # avenue east
 		[Vector3(-34.4, y, -24.6), Vector3(11.2, BOUND_H, 0.4)],   # alley north cap

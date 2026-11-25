@@ -4,8 +4,19 @@
 > The human (Gregory) is technical, terse, and the final judge. Keep answers short with key
 > reasons. Do the work; don't narrate the work.
 >
-> **Starting a session? Read `docs/NEXT-SESSION.md` first, then `docs/HANDOFF-r6.md`** — current state, Gregory's
-> standing scope rules for level one, and how to verify.
+> **Starting a session? Read `docs/NEXT-SESSION.md` — the one handoff file** (current state,
+> Gregory's standing rules, unverified items, open decisions, how to verify). Don't read
+> `docs/BUILD-LOG.md` (history) or `docs/LEVEL-compound.md` (84KB design ref) whole — grep them.
+> Before feel/animation/smoothing work, read `docs/BRIEF-animation.md`.
+>
+> **Finishing a large task? Write the handoff yourself, unprompted** (Gregory, r8: "always write a
+> handoff when you finish a large task. So I don't have to send you a message"). **Rewrite
+> `docs/NEXT-SESSION.md` in place** (state, what was asked in his words, what was built, what is
+> unverified, next steps — replace the previous round's section, don't stack it) and append the
+> round to `docs/BUILD-LOG.md` — before you report back, not after he asks. No per-round
+> HANDOFF files.
+>
+> `screenshots/` is throwaway tool output (gitignored); delete stale frames when a round ends.
 
 ## What this is
 
@@ -51,9 +62,18 @@ back on its worst characters; consequences are ironic, not endorsing).
   - `player/` — `player.gd` is a thin root composing `movement.gd`, `look.gd`,
     `health.gd`, `mantle.gd`, `interactor.gd`, `footsteps.gd` and one kit;
     `viewmodel.gd` (hand + pistol, recoil, flash, sway, bob, aim down sights; the GLB is
-    baked by `tools/blender/viewmodel_fit.py`) is created by the kit
+    exported from `art/viewmodel.blend`, which Gregory edits — the game reads its
+    `grip`/`muzzle`/`sight_*` empties, see ASSETS.md) is created by the kit
     that holds something (the Regular); it renders in its own SubViewport with a
     narrow-FOV camera under the HUD (see its header) — don't parent it to the camera.
+    r8: `weapons.gd` (PlayerWeapons — the Regular's arsenal: slots 1-5, wheel,
+    reload, ammo, pellets, knockback, gibs; tuning in `data/weapons.gd`) and
+    `player/tools/` (`tool_kick.gd` V, `tool_grapple.gd` Q, `tool_nightvision.gd` N,
+    `tool_eat.gd` F on a corpse), all composed by `kit_regular.gd` — shared
+    components like movement, so a future operative can carry them too.
+    r9: `weapon_reload.gd` (WeaponReload — mag reloads, instant throwables,
+    shell-at-a-time with `shell_time`); `ui/hud_scope.gd` (the rifle's 3x
+    eyepiece; `WeaponData.zoom_for` turns `scope` into a true magnification).
     - `player/kits/` — **one file per operative**: `kit_regular.gd`, `kit_wizard.gd`,
       `kit_chad.gd`, sharing `kit_base.gd`. Changing a character means opening exactly
       one file. Do not split a moveset across files.
@@ -61,7 +81,11 @@ back on its worst characters; consequences are ironic, not endorsing).
     `guard_combat.gd`, `guard_body.gd`; plus `target.gd` (VIP) and `civilian.gd`
     (bystanders that wander and panic). `guard_nav.gd` bakes the navmesh from the level's
     static colliders (rebaked when a `RemoteDoor` changes); `nav_walker.gd` follows it.
-    Bodies are `world/humanoid.gd` (crude garish limb rig); blood is `fx/gore.gd`.
+    Bodies are `world/humanoid.gd`: CC0 Quaternius bodies + animations
+    (`tools/blender/people.py` bakes them, with a clothing mask in the vertex
+    colours that `world/person.gdshader` paints garishly; then
+    `tools/blender/people_lowpoly.py` decimates them to ~1.5k faces, flat-shaded,
+    to match the Kenney props); blood is `fx/gore.gd`.
   - `world/` — `levels.gd` (level id -> builder), `level_meridian.gd` and
     `level_compound.gd` (orchestrators; each header holds that level's plan),
     `build_utils.gd` / `wall_utils.gd` (geometry helpers; `WallUtils.wall` cuts
@@ -76,17 +100,27 @@ back on its worst characters; consequences are ironic, not endorsing).
       `sec_app_canal` (the approach), `sec_app_heights` (its high routes),
       `sec_cmp_*` (the campus; `sec_cmp_climbs` = fire escape, scaffold,
       boiler climb; `sec_cmp_billboard` = board + maintenance scaffold + catwalk;
-      `sec_cmp_exits` = van, car, helicopter, helipad stair), `sec_props_*`
+      `sec_cmp_exits` = van, helicopter, helipad stair; the avenue car went in r9), `sec_props_*`
       (set dressing tables) and `sec_skyline` (city beyond the bounds).
-      r6: `sec_cmp_vertical` (car-park deck, west gantry, podium, plant-room top),
-      `sec_annex` (the Scoring Annex north of the avenue — secondary objective),
-      `sec_crane_run` (platforming over the annex dock, a moving pallet, roof
-      plant units), `sec_art` (posters, graffiti, neon, the watching eyes, CCTV,
-      the CONSENTO statues). Tools read
+      r6: `sec_cmp_vertical` (car-park deck, west gantry, podium, plant-room top,
+      roof plant units), `sec_art` (posters, graffiti, neon, score screens, the
+      watching eyes, CCTV, the CONSENTO statues). r7: the Scoring Annex
+      district north of the avenue — `sec_annex` (walls, Consent Way, yards),
+      `sec_annex_building`, `sec_annex_site` (the Consent Tower construction
+      site: the long plank/ladder platforming route onto the annex roof);
+      `sec_trip` (TripZone boxes). r9: `sec_r9_grapple` (grapple-only
+      perches with ammo caches — billboard top, Holloway House roof, crane
+      counterweight; `MissionCompoundData.CACHES`). Tools read
       `LevelCompound.sections()`, so a new section is never missing from them.
     - `world/interactables/` — `interactable.gd` base plus `locked_door.gd`,
       `breakable_wall.gd`, `warded_seal.gd`, `switch.gd` (no-verb lever),
       `remote_door.gd` (opened/locked by the level, never by hand).
+  - `world/surveillance.gd` — what wiping the Score switches off (billboard,
+    score screens, CCTV, eyes, door locks, alarm posts); `Surveillance.screen`
+    makes a score screen. `world/ladder.gd` — ladders (climb zones checked by
+    `PlayerMovement._climb`). `fx/trip_zone.gd` + `trip_parts.gd` +
+    `trip_audio.gd` — the trip zones: wall eyes that follow you, faces at the
+    edge of vision, a face behind you; drives PostFx's `trip`.
   - `world/defence_plan.gd` — on ALARM, who searches and who mans which of
     `MissionCompoundData.POSTS`. `world/secondary_score.gd` + `interactables/
     wipe_terminal.gd` — the optional objective (wipe the Consent Score).
@@ -96,7 +130,10 @@ back on its worst characters; consequences are ironic, not endorsing).
     turn to look at you. Our own art: `tools/gen/make_textures.py` (posters,
     graffiti, wallpaper, terrazzo, faces -> assets/textures/gen/) and
     `tools/blender/*.py` (the viewmodel fit, the CONSENTO mascot).
-  - `ui/screens/screen_intro.gd` — the OPENING visual novel (title menu button).
+  - `ui/screens/screen_intro.gd` — the OPENING: Postal 4-style comic pages;
+    the words and panel list are `data/intro_script.gd` (Gregory writes it).
+    Panel art: `tools/intro_panels.gd` renders staged stills,
+    `tools/gen/comicify.py` inks them into `assets/intro/` — or drop in a PNG.
   - `core/alert_state.gd` — building-wide CALM/ALARM; calls the level's
     `mission.on_alarm()`. `core/settings.gd` — options persisted to
     user://settings.cfg (volume, sensitivity, FOV, invert Y, fullscreen, vsync,
@@ -108,8 +145,10 @@ back on its worst characters; consequences are ironic, not endorsing).
     `ui/screens/` holds `screens.gd` (router, layer 10 over the HUD) and one file
     per screen over `screen_base.gd`: title (main menu), missions, options,
     credits, select, briefing, pause, end.
-  - `fx/` — `audio_synth.gd` (SFX by name: drop-in file -> Kenney sample ->
-    synthesized fallback), `atmosphere.gd` (ambient light by light tier + the alarm's
+  - `fx/` — `audio_synth.gd` (SFX by name: drop-in file -> our generated
+    `assets/audio/gen/<name>_<n>.wav` from `tools/gen/make_sfx.py` -> Kenney sample ->
+    synthesized fallback), `impact.gd` (sparks, bullet holes), `explosion.gd` +
+    `grenade.gd`, `sound_at.gd` (3D one-shot at a point), `gore.gd` (`gib` on overkill), `atmosphere.gd` (ambient light by light tier + the alarm's
     siren / red pulse), `projectile.gd`, `meteor.gd`.
 - `.godot/`, `*.import` files — generated. Never edit by hand.
 
@@ -165,13 +204,22 @@ back on its worst characters; consequences are ironic, not endorsing).
    **An alerted guard is not the alarm** (Gregory, 2026-10-01): he runs to an alarm station
    (`AlarmStation`, `GuardBrain._run_to_station`) and presses it; kill him on the way and
    there is no alarm. Sirens are 3D horns (`AlarmSiren`); never play the siren 2D.
+   **Alarm posts are a run, not a reach** (Gregory, r7): every guard walks 12m+
+   to his post (G5/G7 excepted); `_compound_systems` enforces it,
+   `tools/alarm_reach.gd` prints the table.
    **The alarm is a defence, not a rush** (Gregory, r6): one runner per station; on alarm
    one guard searches and the rest man `MissionCompoundData.POSTS` (`DefencePlan`) and
    fight from them within `GuardBrain.LEASH`, falling back when they lose you.
+   **No tracking through walls** (Gregory, r9): an alerted guard who loses sight
+   for `LOST_GRACE` goes to `last_seen`, looks round, and drops to SUSPICIOUS after
+   `HUNT_TIME`. **The rifle alerts** (WeaponData `alerts`): every guard in its 75m
+   earshot goes ALERT hunting the shot, walls or not.
 6. **Past grayboxing now (Gregory asked, 2026-09-30):** textures, props, skyline,
    viewmodel. Keep it Cruelty Squad-crude rather than realistic; tune by feel.
 7. **No health regeneration.** Damage is permanent for the run — that is what makes the
    armour loadout a real choice and each mission a single life. Guards hit for 22.
+   The one way back up is Cruelty Squad's: **eat a corpse** (`ToolEat`, +5 — Gregory, r9 —
+   once per body, 2s standing still) — health taken from the dead, never given over time.
 8. **Guard fire is telegraphed, never instant.** `guard_combat.gd` holds a visible aim state
    for `aim_time` (0.55s) before firing, and every shot draws a `Tracer`. Both exist so the
    Wizard's 0.25s dodge has something to be timed against, and so a 22-damage hit is never
@@ -224,9 +272,11 @@ back on its worst characters; consequences are ironic, not endorsing).
 
 ESC pause (resume / restart / options / main menu / desktop).
 WASD move · mouse look (captured) · LMB attack · RMB aim down sights (Regular) /
-charge (wizard) · E ability
-(Meteor / slam) · **F interact** (pick / unward / breach) · C/Ctrl crouch ·
-Shift sprint, but **dash for the wizard** · Space jump / mantle · ESC pause.
+charge (wizard) · E ability (Meteor / slam) · **F interact** (pick / unward / breach;
+hold on a corpse to eat) · C/Ctrl crouch · Shift sprint, but **dash for the wizard** ·
+Space jump / mantle · 1-5 / wheel weapons · R reload · V or MMB kick · Q grapple (hold;
+hooks anything — a wall near its top hauls you over, a person gets yanked to you) ·
+N night vision · ESC pause. Fall below y -30 (off the map) and you die.
 
 ## Running
 
@@ -245,8 +295,16 @@ Shift sprint, but **dash for the wizard** · Space jump / mantle · ESC pause.
   Visual: `tools/screenshot_compound.gd` (magenta sky = holes),
   `tools/screenshot_approach.gd` (real lighting), `tools/shot.gd -- views.txt
   [--magenta]` (ad-hoc views, one `name ex ey ez lx ly lz` per line) and
-  `tools/smoketest_jumps.gd` plays the crane run's jumps with the real player;
-  `tools/intro_shot.gd` photographs the opening's scenes.
+  `tools/smoketest_jumps.gd` plays the Consent Tower site's jumps with the real player;
+  `tools/intro_shot.gd` photographs the opening's comic pages; `people_shot.gd`,
+  `trip_shot.gd` and `alarm_reach.gd` (headless) are r7's.
+  r8: `smoketest_arsenal.gd` (every weapon kills, reload, grenade, kick, grapple, night
+  vision, eating, ammo drops) and `combat_probe.gd` (are alerted guards dangerous? fails
+  under 6 dmg/s at a spot with fighters) — both headless. r9: `smoketest_r9.gd` (one
+  case per r9 complaint: grenades, pump, drops, scope, NV, caches, yank, rifle alert,
+  last_seen, fall death) and `r9_shot.gd` (NV off/on, scope, perches -> screenshots/r9_*). Review packs: `judge_pack.gd`
+  (11 real-game frames -> screenshots/judge/), `map_plan.gd` + `tools/gen/draw_plan.py`
+  (measured floor plans with room tags -> screenshots/plan_*.png).
   Screenshots render Forward+ under xvfb on this machine's GPU (drop the
   `--rendering-method gl_compatibility` flag to see the real look).
   `tools/play_shot.gd [-- x y z yaw]` (boots the real game: every menu screen, then

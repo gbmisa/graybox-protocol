@@ -13,6 +13,11 @@ const STRAFE_SPEED := 3.5
 const LEASH := 5.0           # a guard on a post fights within this of it
 const HOLD_LOOK := 2.5       # seconds he watches where he lost you before falling back
 const HOLD_CALM := 20.0      # unseen this long, he stands down at his post
+## r9 (Gregory: "alerted guards should not continue tracking through walls"):
+## out of sight, he goes where he last saw you (or heard the shot), looks
+## round, and after HUNT_TIME unseen drops to a search of that spot.
+const LOST_GRACE := 0.35     # a blink of lost sight doesn't break the chase
+const HUNT_TIME := 9.0
 
 var guard: Guard
 
@@ -22,12 +27,14 @@ var _look: float = 0.0
 var _lose: float = 0.0
 var _strafe_dir: float = 1.0
 var _strafe_t: float = 0.0
-var _run_t: float = 0.0
+var runner := GuardRunner.new()
 var _unseen: float = 0.0
+var _hunt: float = 0.0       # seconds alerted without sight of you
 var _chatter_t: float = randf_range(8.0, 25.0)
 
 func setup(p_guard: Guard) -> void:
 	guard = p_guard
+	runner.brain = self
 
 func tick(player: Player, delta: float) -> void:
 	match guard.state:
@@ -39,8 +46,9 @@ func tick(player: Player, delta: float) -> void:
 			_alert(player, delta)
 
 func on_enter_alert() -> void:
-	_run_t = 0.0
+	runner.run_t = 0.0
 	_lose = 0.0
+	_hunt = 0.0
 	_strafe_t = 0.0
 	guard.combat.reset_cooldown(0.5)
 
@@ -122,6 +130,7 @@ func _spot_taken() -> bool:
 
 # ----------------------------------------------------------------- alert ---
 func _alert(player: Player, delta: float) -> void:
+	runner.maybe_take()
 	if guard.alarm_run and _run_to_station(delta):
 		return
 	if guard.hold_pos != Vector3.INF:
@@ -133,60 +142,51 @@ func _alert(player: Player, delta: float) -> void:
 	var to_p: Vector3 = player.global_position - guard.global_position
 	to_p.y = 0.0
 	var dist := to_p.length()
-	if dist > GIVE_UP_DIST:
-		_losing(delta)
+	var sees := dist <= GIVE_UP_DIST and _sees(player)
+	if sees:
+		guard.last_seen = player.global_position
+		_hunt = 0.0
+	else:
+		_hunt += delta
+	if _hunt > LOST_GRACE:
+		_search_last_seen(delta)
 		return
 	_lose = 0.0
-	# Close but with a wall between: strafing would circle on the spot.
-	if dist > CHASE_DIST or not _sees(player):
-		guard.move_to(player.global_position,
-			float(GuardData.stats()["chase_speed"]), delta)
+	if dist > CHASE_DIST or not sees:
+		guard.move_to(guard.last_seen, float(GuardData.stats()["chase_speed"]), delta)
 	else:
 		_strafe(to_p, delta)
-	if dist > 0.01:
+	if sees and dist > 0.01:
 		guard.face(atan2(-to_p.x, -to_p.z), delta)
 	guard.combat.tick(player, delta, dist)
+
+## Lost you: run to where you were last seen, then turn on the spot looking.
+## He knows nothing newer than `last_seen` — no peeking through walls.
+func _search_last_seen(delta: float) -> void:
+	guard.combat.cancel_aim()
+	var to := guard.last_seen - guard.global_position
+	to.y = 0.0
+	if to.length() > ARRIVE_DIST * 1.5:
+		guard.move_to(guard.last_seen, float(GuardData.stats()["chase_speed"]), delta)
+	else:
+		guard.stop()
+		guard.rotate_y(1.6 * delta)
+	if _hunt >= HUNT_TIME:
+		_hunt = 0.0
+		guard.enter_suspicious(guard.last_seen, 0.6)
+
+func sees_player() -> bool:
+	var p := guard.game.get_player()
+	return p != null and p.alive and _sees(p)
 
 func _sees(player: Player) -> bool:
 	var from := guard.global_position + Vector3(0, 1.4, 0)
 	return guard.ray(from, player.global_position + Vector3(0, 1.0, 0),
 		[player.get_rid()]).is_empty()
 
-## An alerted guard's first job is the alarm: run to the nearest station on
-## his floor and press it. He does not shoot while he runs — which is the
-## window to drop him. Gives up after RUN_TIME (blocked, or too far) and fights.
-const RUN_TIME := 15.0
-const PRESS_DIST := 1.3
-
+## The alarm run lives in guard_runner.gd (GuardRunner).
 func _run_to_station(delta: float) -> bool:
-	if guard.game.alert.is_alarm():
-		guard.alarm_run = false
-		return false
-	_run_t += delta
-	var st := guard.game.nearest_station(guard.global_position)
-	if st == null or _run_t > RUN_TIME or not _claim(st):
-		guard.alarm_run = false
-		return false
-	var to := st.global_position - guard.global_position
-	to.y = 0.0
-	if to.length() > PRESS_DIST:
-		guard.move_to(st.global_position,
-			float(GuardData.stats()["chase_speed"]) * 1.1, delta)
-		return true
-	guard.stop()
-	guard.alarm_run = false
-	st.press()
-	guard.game.alert.raise("ALARM STATION")
-	return true
-
-## One runner per station — a second would only queue at it. He fights instead.
-func _claim(st: AlarmStation) -> bool:
-	var r: Variant = st.get_meta("runner", null)
-	if r != null and r != guard and is_instance_valid(r) and (r as Guard).alive \
-			and (r as Guard).alarm_run:
-		return false
-	st.set_meta("runner", guard)
-	return true
+	return runner.run(delta)
 
 ## Alerted on a post: shoot from it, never chase out. Lose sight and he watches
 ## a moment, falls back to the post facing the way in, then stands down there.

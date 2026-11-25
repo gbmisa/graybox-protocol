@@ -37,6 +37,7 @@ func build(root: Control) -> void:
 	root.add_child(_hitmarker)
 
 func tick(delta: float) -> void:
+	_crosshair.visible = not HudScope.is_scoped(hud)
 	if _hit_alpha > 0.0:
 		_hit_alpha = maxf(0.0, _hit_alpha - delta / HITMARKER_FADE)
 		_hitmarker.modulate.a = _hit_alpha

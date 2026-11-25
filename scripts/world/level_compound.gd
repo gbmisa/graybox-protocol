@@ -32,13 +32,17 @@ extends RefCounted
 ## north corridor -> north stair; over the wall from the overbridge or the
 ## boiler-house climb (west alley); the fire escape (west yard) to the 1F
 ## west strip behind G9, or the roof; the scaffold (courtyard) to the 1F
-## south corridor, or the roof. WAYS OUT: culvert -> van; gate lever ->
-## car (E3); or back out the way you came and walk to the van.
+## south corridor, or the roof. WAYS OUT: culvert -> van; the helipad
+## (E2); or back out the way you came and walk to the van.
 ## HIGH LEVELS (sec_cmp_vertical): car-park deck in the avenue (3.0), west
 ## gantry along the wall (3.0), courtyard podium (2.85), plant-room top and
 ## water tank on the main roof (10.4 / 11.55) — each a mantle to the wall top.
-## SCORING ANNEX (sec_annex) north of the avenue: the secondary objective —
-## wipe the Consent Score server (SecondaryScore). Checkpoint or crawl in.
+## SCORING ANNEX DISTRICT north of the avenue, x [-34, 34] z [-106, -40]
+## (r7, ~5x the r6 yard): Consent Way runs head-on from the checkpoint to the
+## annex (sec_annex, sec_annex_building); the Consent Tower construction site
+## east of it is the long platforming route, planks and ladders, ending on
+## the annex roof (sec_annex_site). The secondary objective: wipe the Consent
+## Score server (SecondaryScore), which switches the level's surveillance off.
 
 const PLAYER_SPAWN := Vector3(0, 0, 190)
 
@@ -63,14 +67,19 @@ static func sections() -> Dictionary:
 		"lanes": SecCmpLanes,
 		"vertical": SecCmpVertical,
 		"annex": SecAnnex,
-		"crane_run": SecCraneRun,
+		"annex_building": SecAnnexBuilding,
+		"annex_site": SecAnnexSite,
 		"alarm": SecAlarm,
+		"r8_cover": SecR8Cover,
+		"r8_clutter": SecR8Clutter,
+		"r9_grapple": SecR9Grapple,
 		"billboard": SecCmpBillboard,
 		"exits": SecCmpExits,
 		"props_approach": SecPropsApproach,
 		"props_campus": SecPropsCampus,
 		"props_interior": SecPropsInterior,
 		"art": SecArt,
+		"trip": SecTrip,
 		"skyline": SecSkyline,
 		"room_names": SecRoomNames,   # playtest tags; SHOW / --no-room-names
 	}
@@ -82,6 +91,11 @@ static func build(game: GrayboxGame) -> Dictionary:
 	var secs := sections()
 	for key in secs:
 		secs[key].build(root, game)
+	# r8 review: every world sign gets an ink outline so it reads over neon.
+	for n in root.find_children("*", "Label3D", true, false):
+		var l := n as Label3D
+		l.outline_size = maxi(l.outline_size, 10)
+		l.outline_modulate = Color(0, 0, 0, 0.9)
 	var text := LevelText.info("compound")
 	return {
 		"level_root": root,

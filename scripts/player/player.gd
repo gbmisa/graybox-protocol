@@ -112,7 +112,10 @@ func _physics_process(delta: float) -> void:
 		mantle.tick(delta)
 		return
 	movement.tick(delta)
+	kit.post_move(delta)
 	move_and_slide()
+	if global_position.y < PlayerHealth.KILL_Y:
+		health.fall()
 
 ## No regen while squeezed: the squeeze is paid for out of the pool (M4).
 func _regen_mana(delta: float) -> void:

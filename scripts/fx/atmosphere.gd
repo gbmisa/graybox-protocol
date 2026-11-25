@@ -17,10 +17,15 @@ extends Node
 ## untouched.
 
 ## Fraction of the level's own ambient light kept in each tier.
-const TIER_AMBIENT := {"LIT": 1.0, "DARK": 0.28, "PITCH": 0.05}
+## r8: the tiers are dressed in the world now (LightTiers.dress), so this only
+## eases the PITCH step in a touch for the eye adjusting; LIT and DARK are 1.
+const TIER_AMBIENT := {"LIT": 1.0, "DARK": 1.0, "PITCH": 0.7}
 const EASE := 2.5
 const PULSE_HZ := 1.1
 const ALARM_RED := Color(1.0, 0.08, 0.05)
+## r9 ("night vision does nothing"): the implant multiplies the night's
+## ambient by this at full strength (ToolNightVision.current).
+const NV_AMBIENT := 2.5
 
 var game: GrayboxGame
 var _env: Environment
@@ -80,7 +85,7 @@ func _process(delta: float) -> void:
 		var tier := game.tier_at(p.global_position + Vector3(0, 1.0, 0))
 		var want := float(TIER_AMBIENT.get(tier, 1.0))
 		_factor = lerpf(_factor, want, minf(1.0, delta * EASE))
-	_env.ambient_light_energy = _base_energy * _factor
+	_env.ambient_light_energy = _base_energy * lerpf(_factor, NV_AMBIENT, ToolNightVision.current)
 	if _alarm:
 		_t += delta
 		var pulse := 0.5 + 0.5 * sin(_t * TAU * PULSE_HZ)

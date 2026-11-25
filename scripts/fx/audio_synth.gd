@@ -11,6 +11,7 @@ extends RefCounted
 const MIX_RATE := 22050
 
 const DROP_IN := "res://assets/audio/sfx/%s.%s"
+const GEN := "res://assets/audio/gen/%s_%d.wav"   # 1b: ours, before Kenney
 
 ## Kenney CC0 samples (ASSETS.md), several per name for variety.
 const FILES := {
@@ -41,6 +42,9 @@ static func streams(sfx_name: String) -> Array:
 		if ResourceLoader.exists(path):
 			out.append(load(path))
 			break
+	for i in 4:   # 1b. ours (tools/gen/make_sfx.py), up to 4 variants
+		if out.size() == i and ResourceLoader.exists(GEN % [sfx_name, i]):
+			out.append(load(GEN % [sfx_name, i]))
 	if out.is_empty():
 		for f in FILES.get(sfx_name, []):
 			var path := "res://assets/audio/%s.ogg" % f

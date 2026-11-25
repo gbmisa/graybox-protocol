@@ -24,6 +24,8 @@ const NEAR_GUARD := 12.0
 var game: GrayboxGame
 var level: int = Level.CALM
 var count: int = 0
+## The Score is wiped (Surveillance.blackout): nothing can raise the alarm.
+var system_down: bool = false
 
 var _since_seen: float = 0.0
 
@@ -35,13 +37,14 @@ func reset() -> void:
 		game.hud.set_alarm(false)
 	level = Level.CALM
 	count = 0
+	system_down = false
 	_since_seen = 0.0
 
 func is_alarm() -> bool:
 	return level == Level.ALARM
 
 func raise(reason: String) -> void:
-	if not game.is_playing():
+	if not game.is_playing() or system_down:
 		return
 	_since_seen = 0.0
 	if level == Level.ALARM:
@@ -70,6 +73,7 @@ func on_noise(pos: Vector3, radius: float) -> void:
 			# A guard close enough hears the shots: he is alerted, and heads for a
 			# station like any other alerted guard. No instant alarm.
 			if gd.state != Guard.State.ALERT:
+				gd.last_seen = pos   # r9: he hunts the shot, not you through walls
 				gd.enter_alert()
 			return
 
@@ -83,6 +87,12 @@ func _process(delta: float) -> void:
 	if _since_seen < DECAY:
 		return
 	stand_down("ALARM STOOD DOWN — lockdown stays")
+
+## The alarm system is dead for the rest of the run. An alarm already up
+## dies with it.
+func shut_down() -> void:
+	system_down = true
+	stand_down("ALARM SYSTEM OFFLINE")
 
 ## Back to CALM: by decay, or by the player pressing a station's reset.
 ## Guards still alerted stay alerted, and a guard who sees the player again

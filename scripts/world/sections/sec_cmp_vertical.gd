@@ -42,6 +42,7 @@ static func build(root: Node3D, game: GrayboxGame) -> void:
 	_gantry(root)
 	_podium(root)
 	_plant_room_top(root)
+	_roof_units(root)
 
 # -------------------------------------------------------------- car park ---
 static func _car_park(root: Node3D) -> void:
@@ -116,3 +117,18 @@ static func _plant_room_top(root: Node3D) -> void:
 
 static func _sign(root: Node3D, text: String, pos: Vector3, yaw: float) -> void:
 	SecCmpDressing.plate_sign(root, text, pos, yaw, Color(1.0, 0.85, 0.3))
+
+## Plant units on the main roof (8.4): cover and a hop circuit. Heights step
+## 0.6 / 1.15 / 1.8 so each is a jump or a mantle from the last. Clear of the
+## duct mouth (x 7, z -12), the crate-stair gap (x 10, z [-15, -13.5]), the
+## scaffold and fire-escape arrivals, and the plant room's stair (x [-2, 2]).
+static func _roof_units(root: Node3D) -> void:
+	var r := 8.4
+	var units := [
+		[-17.0, -14.5, -17.5, -15.5, 0.6], [-14.0, -12.5, -17.5, -15.5, 1.15],
+		[-11.5, -10.0, -17.5, -16.0, 1.8], [-18.5, -16.5, -9.5, -7.5, 1.15],
+		[-14.5, -12.5, -8.0, -6.5, 0.6], [4.0, 6.0, -18.5, -16.5, 1.15],
+		[7.0, 8.5, -7.5, -5.5, 0.6], [-9.0, -7.5, -6.5, -5.0, 1.15],
+	]
+	for u in units:
+		WallUtils.block(root, u[0], u[1], r, r + float(u[4]), u[2], u[3], Color(0.36, 0.38, 0.36))

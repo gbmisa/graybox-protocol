@@ -7,8 +7,8 @@ Level geometry is still built in code from primitives; the assets dress it.
 | What | Source | License | Where | Used for |
 |---|---|---|---|---|
 | Car Kit, City Kit (Commercial / Industrial / Suburban), Retro Urban Kit, Survival Kit, Furniture Kit | [Kenney](https://kenney.nl) | CC0 | `assets/models/<kit>/` | cars, bins, skips, lamp posts, trees, furniture, skyline (`scripts/world/props.gd`, `sec_props_*`, `sec_skyline`) |
-| Blaster Kit (`blaster-a`, `silencer-small`) | [Kenney](https://kenney.nl/assets/blaster-kit) | CC0 | baked into `assets/viewmodel/viewmodel_pistol.glb` | the Regular's pistol |
-| WRAD ARMS | [wriks](https://wriks.itch.io/wrad-arms) | CC0 | baked into `assets/viewmodel/viewmodel_pistol.glb` | first-person hand |
+| Blaster Kit, WRAD ARMS | Kenney / wriks | CC0 | only in `art/viewmodel.blend`'s hidden OLD reference collection (r8) | the pre-r8 viewmodel, kept to compare against |
+| Universal Base Characters [Standard], Universal Animation Library [Standard] | [Quaternius](https://quaternius.com) | CC0 | baked into `assets/models/people/person_{male,female}.glb` by `tools/blender/people.py` | every guard, civilian and the target (`scripts/world/humanoid.gd`) |
 | Interface Sounds, Impact Sounds, Sci-Fi Sounds | [Kenney](https://kenney.nl) | CC0 | `assets/audio/{ui,impact,scifi}/` | menu clicks, footsteps, hits, PA chime, engine idles |
 | Kenney Fonts (Future, Future Narrow, Mini Square Mono) | [Kenney](https://kenney.nl/assets/kenney-fonts) | CC0 | `assets/fonts/` | menu headings and buttons |
 | asphalt_02, brick_wall_02, concrete_wall_008, concrete_floor_worn_001, concrete_pavement, metal_plate_02, corrugated_iron_02, plywood (1k diffuse + GL normal) | [Poly Haven](https://polyhaven.com) | CC0 | `assets/textures/` | surface materials (`scripts/world/surfaces.gd`) |
@@ -17,11 +17,19 @@ License texts: `assets/LICENSE-kenney.txt`, `assets/viewmodel/LICENSE-*.txt`.
 
 ## The viewmodel
 
-`assets/viewmodel/viewmodel_pistol.glb` is one static mesh: the WRAD right arm posed round
-Kenney's `blaster-a` in Blender (fingers curled by script, grip fitted to the fist), the pose
-baked, the left arm removed, exported with the eye at the origin looking down −Z. To re-pose
-it, rebuild from the WRAD `.blend` — the gun's materials are overridden in
-`scripts/player/viewmodel.gd` anyway.
+Our own (r8): `art/viewmodel.blend` — a low-poly pistol (slide, frame, grip, guard,
+sights, suppressor) and a gloved right arm, every part a separate bevelled box you can
+edit. The eye is the origin looking down +Y. Run its `export_viewmodel.py` text block
+(Text Editor, Alt+P) to write `assets/viewmodel/viewmodel_pistol.glb`. The game reads
+the empties `gun`, `grip`, `muzzle`, `sight_rear`, `sight_front` from the GLB, so keep
+them (and move them if you reshape the gun). Materials are used as authored. `art/` has
+a `.gdignore` so Godot never tries to import the `.blend`.
+
+## Our generated sounds (r8)
+
+`assets/audio/gen/<name>_<n>.wav` are ours, synthesized by `tools/gen/make_sfx.py`
+(numpy; gunshots, reloads, explosion, kick, grapple, night vision, eating, gibs...).
+Re-run it to change them. A drop-in in `assets/audio/sfx/` still wins over these.
 
 ## Sound drop-ins (e.g. a bought Gamemaster Audio pack)
 

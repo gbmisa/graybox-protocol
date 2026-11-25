@@ -51,12 +51,22 @@ func _build() -> void:
 	sign.double_sided = false
 	sign.position = Vector3(0, 1.15, 0.2)
 	add_child(sign)
+	Surveillance.screen(self, Vector3(0, 1.75, 0.13), 0.0,
+		"REPORTER SCORE\n%d" % (100 + randi() % 800), Vector2(0.42, 0.26))
 	_lamp = OmniLight3D.new()
 	_lamp.position = Vector3(0, 1.5, 0.3)
 	_lamp.light_color = PANEL_ON
 	_lamp.light_energy = 0.5
 	_lamp.omni_range = 4.0
 	add_child(_lamp)
+
+## The Score is wiped: the post dies. Out of the group, so no guard runs to
+## it (GrayboxGame.nearest_station) — he fights where he stands instead.
+func power_off() -> void:
+	remove_from_group("alarm_station")
+	_mat.emission_enabled = false
+	_mat.albedo_color = Color(0.12, 0.05, 0.05)
+	_lamp.visible = false
 
 ## The guard's hand lands on the panel: flash and click.
 func press() -> void:

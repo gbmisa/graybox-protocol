@@ -10,9 +10,13 @@ Writes assets/textures/gen/:
   wallpaper.png       tiling "consent" wallpaper, 512x512
   terrazzo.png        tiling terrazzo floor, 512x512
   face_0..7.png       grotesque faces for the humanoids' heads, RGBA 256x256
+  trip_face_0..5.png  the trip zones' faces (TripZone), RGBA 512x512: pale,
+                      too-wide grins, empty sockets where 3D eyeballs go —
+                      the sockets are listed in trip_faces.json (u, v, r)
 
 Deterministic (fixed seed) so a re-run reproduces the same art.
 """
+import json
 import math
 import os
 import random
@@ -255,6 +259,64 @@ def faces():
         grunge(img, 0.25, 50 + i).save(os.path.join(OUT, f"face_{i}.png"))
 
 
+def trip_faces():
+    """Faces for the trip zones. Empty sockets (the game puts real eyeballs in
+    them, which turn to follow you), mouths that are too wide or in the wrong
+    place, some with too many eyes. Soft-edged on transparency."""
+    r = random.Random(666)
+    sockets = {}
+    skins = [(222, 214, 196), (205, 214, 190), (230, 200, 205), (196, 202, 222), (214, 200, 170),
+             (235, 230, 225)]
+    for i, skin in enumerate(skins):
+        S = 512
+        img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        # The head: a long oval, slightly off true.
+        d.ellipse([70 + r.randint(-10, 10), 30, 442 + r.randint(-10, 10), 500], fill=skin + (255,))
+        shadow = tuple(int(c * 0.72) for c in skin) + (255,)
+        # Sockets: two, or three, or a row of five.
+        n = [2, 2, 3, 5, 2, 4][i]
+        if n == 2:
+            pts = [(0.36, 0.40, 0.085), (0.64, 0.40 + r.uniform(-0.03, 0.03), 0.085)]
+        elif n == 3:
+            pts = [(0.33, 0.42, 0.075), (0.67, 0.42, 0.075), (0.5, 0.25, 0.09)]
+        elif n == 4:
+            pts = [(0.36, 0.36, 0.07), (0.64, 0.36, 0.07), (0.38, 0.52, 0.055), (0.62, 0.52, 0.055)]
+        else:
+            pts = [(0.22 + k * 0.14, 0.40 + 0.04 * math.sin(k * 1.7), 0.055) for k in range(5)]
+        for (u, v, rad) in pts:
+            cx, cy, R = u * S, v * S, rad * S
+            d.ellipse([cx - R * 1.6, cy - R * 1.4, cx + R * 1.6, cy + R * 1.5], fill=shadow)   # bruised ring
+            d.ellipse([cx - R * 1.1, cy - R, cx + R * 1.1, cy + R], fill=(14, 6, 8, 255))      # socket
+        sockets[i] = pts
+        # Nose: two slits.
+        d.ellipse([236, 300, 248, 322], fill=(40, 20, 20, 255))
+        d.ellipse([264, 300, 276, 322], fill=(40, 20, 20, 255))
+        # The mouth: too wide, all teeth, corners up past the cheeks.
+        my = 380 + r.randint(-10, 15)
+        mw = r.randint(150, 185)
+        d.chord([256 - mw, my - 70, 256 + mw, my + 70], 0, 180, fill=(60, 4, 14, 255))
+        for k in range(-mw + 18, mw - 18, 22):
+            h = 26 if abs(k) < mw * 0.7 else 16
+            d.rectangle([256 + k, my, 256 + k + 16, my + h], fill=(246, 240, 214, 255))
+        d.line([(256 - mw, my), (256 - mw - 30, my - 50)], fill=(60, 4, 14, 255), width=10)
+        d.line([(256 + mw, my), (256 + mw + 30, my - 50)], fill=(60, 4, 14, 255), width=10)
+        if i == 4:   # and a second, smaller mouth on the forehead
+            d.chord([196, 70, 316, 150], 0, 180, fill=(60, 4, 14, 255))
+            for k in range(-50, 50, 16):
+                d.rectangle([256 + k, 110, 256 + k + 11, 126], fill=(246, 240, 214, 255))
+        # Creases.
+        for _ in range(9):
+            x0, y0 = r.randint(130, 380), r.randint(90, 470)
+            d.line([(x0, y0), (x0 + r.randint(-40, 40), y0 + r.randint(-14, 14))], fill=shadow, width=3)
+        img = img.filter(ImageFilter.GaussianBlur(1.2))
+        a = img.split()[3].filter(ImageFilter.GaussianBlur(10))   # soft edge
+        img.putalpha(a)
+        grunge(img, 0.22, 900 + i).save(os.path.join(OUT, f"trip_face_{i}.png"))
+    with open(os.path.join(OUT, "trip_faces.json"), "w") as f:
+        json.dump(sockets, f)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     posters()
@@ -262,4 +324,5 @@ if __name__ == "__main__":
     wallpaper()
     terrazzo()
     faces()
+    trip_faces()
     print("wrote", sorted(os.listdir(OUT)))

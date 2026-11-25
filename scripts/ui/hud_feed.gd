@@ -19,6 +19,22 @@ var _alarm_on: bool = false
 var _alarm_t: float = 0.0
 
 func build(root: Control) -> void:
+	# A dark band behind the objective lines, so the billboard and neon behind
+	# never swallow them (r8 review).
+	var band := TextureRect.new()
+	var g := Gradient.new()
+	g.set_color(0, Color(0, 0, 0, 0.55))
+	g.set_color(1, Color(0, 0, 0, 0.0))
+	var gt := GradientTexture2D.new()
+	gt.gradient = g
+	gt.fill_from = Vector2(0.5, 0.0)
+	gt.fill_to = Vector2(0.5, 1.0)
+	band.texture = gt
+	band.stretch_mode = TextureRect.STRETCH_SCALE
+	band.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	band.custom_minimum_size = Vector2(0, 86)
+	band.size = Vector2(0, 86)
+	root.add_child(ignore(band))
 	_objective = make_label("ASSASSINATE THE TARGET", 20, GOLD,
 		HORIZONTAL_ALIGNMENT_CENTER)
 	_objective.set_anchors_preset(Control.PRESET_CENTER_TOP)

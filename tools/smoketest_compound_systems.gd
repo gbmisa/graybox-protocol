@@ -16,6 +16,7 @@ var _bad := 0
 var _dummy: Guard
 var _runner: Guard
 var _veh: Array = []
+var _wiped_at := 0
 
 const VEHICLES := ["car/delivery", "car/taxi", "car/truck", "car/suv", "car/garbage-truck",
 	"car/van", "car/police", "car/sedan"]
@@ -45,11 +46,11 @@ func _process(_delta: float) -> bool:
 	if _frame == 8:
 		_check_alarm()      # first: shooting the dummy guard raises one too
 		_check_station_press()
+		_check_alarm_runs()
 		_check_vehicles()
 		_check_mantle()
 		_check_vertical()
-		_check_secondary()
-		_check_crane_run()
+		_check_site_route()
 		_check_lanes()
 		_check_vault()
 		_check_wall_not_vaulted()
@@ -60,9 +61,18 @@ func _process(_delta: float) -> bool:
 		_check_puddle()
 		_check_labels()
 		_check_loadout()
-		_game.flow.select_char("regular")
+		_check_secondary()   # last: it switches the level's surveillance off
+		_wiped_at = Time.get_ticks_msec()
 		return false
-	if _frame < 12:
+	if Time.get_ticks_msec() - _wiped_at < 3000:
+		return false
+	if _wiped_at > 0:
+		_check_blackout_settled()
+		_wiped_at = 0
+		_game.flow.select_char("regular")
+		_frame = 100
+		return false
+	if _frame < 104:
 		return false
 	_check_briefing_fits()
 	print("\n%d problem(s)" % _bad)
@@ -117,10 +127,10 @@ func _check_vertical() -> void:
 	_ok(_ledge_from(Vector3(-17.7, 0, 18.6), PI, 0.0) == Vector3.INF,
 		"podium is not a climb from the courtyard floor")
 
-## r6 secondary: the server in the annex wipes the score — billboard, stats,
-## HUD line — once.
+## r6 secondary, r7 blackout: the server in the annex wipes the score, and
+## with it every camera, eye, score screen, lock and alarm post in the level.
 func _check_secondary() -> void:
-	print("-- secondary (r6) --")
+	print("-- secondary + blackout (r7) --")
 	var term: WipeTerminal = null
 	for n in _game.get_tree().get_nodes_in_group("interactable"):
 		if n is WipeTerminal:
@@ -129,31 +139,68 @@ func _check_secondary() -> void:
 	if term == null:
 		return
 	_ok(not _game.stats.has("secondary"), "the score starts intact")
+	var tree := _game.get_tree()
+	_ok(tree.get_nodes_in_group("score_display").size() >= 8, "score screens around the level")
 	term.open(_game.player)
-	var board := _game.get_tree().get_nodes_in_group("score_board")
 	_ok(String(_game.stats.get("secondary", "")) != "", "wiping it is recorded for the end screen")
-	_ok(board.size() > 0 and "ERR" in (board[0] as Label3D).text, "the billboard reads ERR")
 	_ok(term.prompt_for(_game.player).is_empty(), "the terminal is done after one wipe")
+	_ok(tree.get_nodes_in_group("alarm_station").is_empty(), "every alarm post is dead")
+	_game.alert.raise("TEST")
+	_ok(not _game.alert.is_alarm(), "nothing can raise the alarm after the wipe")
+	var live := 0
+	for e in tree.get_nodes_in_group("cctv") + tree.get_nodes_in_group("watcher_eye"):
+		if (e as WatcherEye).powered:
+			live += 1
+	_ok(live == 0, "cameras and eyes are off (%d still on)" % live)
+	var m := _game.mission as MissionCompound
+	var shut := 0
+	for d in m.csd + [m.panic_door, m.boiler_door, m.gate]:
+		if not (d as RemoteDoor).is_open:
+			shut += 1
+	_ok(shut == 0, "every automatic lock released (%d still shut)" % shut)
 
-## r6 crane run: every climb on it is a mantle (the hops between are <= 2.5m).
+## After the flicker: the billboard and every score screen are dark.
+func _check_blackout_settled() -> void:
+	var tree := _game.get_tree()
+	var lit := 0
+	for b in tree.get_nodes_in_group("score_board_face"):
+		if ((b as MeshInstance3D).material_override as StandardMaterial3D).emission_enabled:
+			lit += 1
+	for l in tree.get_nodes_in_group("score_board"):
+		if (l as Label3D).visible:
+			lit += 1
+	for s in tree.get_nodes_in_group("score_display"):
+		if (s.get_meta("face") as StandardMaterial3D).emission_enabled:
+			lit += 1
+	_ok(lit == 0, "billboard and score screens dark after the wipe (%d lit)" % lit)
+	for lt in tree.get_nodes_in_group("score_board_light"):
+		_ok(not (lt as Light3D).visible, "the billboard's floodlight is off")
+
+## r7 site route (SecAnnexSite): the mantles on it, and the ladders.
 ## Yaw: 0 north (-z), PI south, PI/2 west, -PI/2 east.
-func _check_crane_run() -> void:
-	print("-- crane run (r6) --")
+func _check_site_route() -> void:
+	print("-- site route (r7) --")
 	var steps := [
-		["deck -> crate 1", Vector3(16.8, 3.0, -36.6), 0.0, 3.0, 4.1],
-		["crate 1 -> crate 2", Vector3(16.8, 4.15, -38.3), 0.0, 4.15, 5.25],
-		["container -> P4", Vector3(12.3, 4.6, -50.7), PI / 2.0, 4.6, 5.65],
-		["P6 -> annex roof parapet", Vector3(6.85, 7.4, -57.0), PI / 2.0, 7.4, 7.95],
+		["C2 -> tower floor 2", Vector3(21.9, 7.0, -93.2), -PI / 2.0, 7.0, 7.95],
 	]
-	# Crate 2 (5.3) to the catwalk (6.0) is a 0.7 hop, under the mantle's chest
-	# probe: just check there is floor to land on.
-	var q := PhysicsRayQueryParameters3D.create(Vector3(16.8, 7.5, -40.9), Vector3(16.8, 4.0, -40.9))
-	var hit := _space().intersect_ray(q)
-	_ok(not hit.is_empty() and absf((hit["position"] as Vector3).y - 6.0) < 0.05,
-		"crate 2 -> wall catwalk: floor at 6.0 to land on")
 	for st in steps:
 		var d := _ledge_from(st[1], float(st[2]), float(st[3]))
 		_ok(d != Vector3.INF and d.y > float(st[4]), "%s (%s)" % [st[0], d])
+	for spot in [Vector3(27.59, 0.5, -50.0), Vector3(32.0, 3.5, -73.59),
+			Vector3(30.0, 0.5, -78.41), Vector3(27.41, 4.5, -95.0), Vector3(29.0, 8.5, -99.09),
+			Vector3(15.0, 4.5, -95.11)]:
+		_ok(Ladder.at(spot), "a ladder at %s" % spot)
+	# Every plank has floor along its whole length (a plank is 0.4 wide).
+	for pl in [[Vector3(32.8, 3.0, -62.5), Vector3(32.8, 3.0, -69.5)],
+			[Vector3(27.5, 6.0, -76.0), Vector3(22.3, 6.0, -76.0)],
+			[Vector3(22.0, 8.0, -95.0), Vector3(18.6, 8.0, -95.0)]]:
+		var gaps := 0
+		for i in 8:
+			var at: Vector3 = (pl[0] as Vector3).lerp(pl[1], i / 7.0)
+			var q := PhysicsRayQueryParameters3D.create(at + Vector3(0, 1, 0), at - Vector3(0, 0.5, 0))
+			if _space().intersect_ray(q).is_empty():
+				gaps += 1
+		_ok(gaps == 0, "plank %s -> %s is continuous" % [pl[0], pl[1]])
 
 ## r5 lanes: the container stacks and the estate-yard zigzag walls climb in
 ## 1.15 rises and not before.
@@ -327,6 +374,38 @@ func _check_stations() -> void:
 	_runner.take_damage(10.0, _runner.global_position + Vector3(0, 0, -5))
 	_ok(not _game.alert.is_alarm(), "a guard being hit does not raise the alarm")
 	_ok(_runner.alarm_run, "he is sent running for a station")
+
+## r7: no guard patrols next to an alarm post. From anywhere on his lane, an
+## alerted guard walks 12m+ of navmesh to the post he'd pick — except G5 and
+## G7, the agreed exceptions (SecAlarm), who still get 9m. Tools/alarm_reach.gd
+## prints the full table.
+func _check_alarm_runs() -> void:
+	print("-- alarm runs (r7) --")
+	var w := _game.level_root.get_world_3d()
+	var short: Array = []
+	for post in GuardPostsCompound.all():
+		var wps: Array = post["waypoints"]
+		var best := INF
+		for i in wps.size():
+			var a: Vector3 = wps[i]
+			var b: Vector3 = wps[(i + 1) % wps.size()]
+			var n := maxi(1, int(a.distance_to(b) / 2.0))
+			for k in n + 1:
+				var p := a.lerp(b, float(k) / n)
+				var st := _game.nearest_station(p)
+				if st == null:
+					continue
+				var path := GuardNav.path(w, p, st.global_position)
+				if path.size() < 2 or path[path.size() - 1].distance_to(st.global_position) > 1.5:
+					continue
+				var l := 0.0
+				for j in range(1, path.size()):
+					l += path[j - 1].distance_to(path[j])
+				best = minf(best, l)
+		var need := 9.0 if post["id"] in ["G5", "G7"] else 12.0
+		if best < need:
+			short.append("%s %.1fm" % [post["id"], best])
+	_ok(short.is_empty(), "every guard has a run to his alarm post %s" % str(short))
 
 ## Second half, after the alarm test (pressing spawns reinforcements, which
 ## would skew its count): the guard arrives and presses.

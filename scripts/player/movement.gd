@@ -18,6 +18,7 @@ const PLAYER_GRAVITY := 24.0
 const FALL_MUL := 1.35
 const STEP_HEIGHT := 0.45
 const STEP_REACH := 0.55
+const MAX_AIR_SPEED := 16.0
 
 enum Stance { STAND, CROUCH, SQUEEZE }
 
@@ -25,6 +26,13 @@ var player: Player
 var crouching: bool = false      # true while crouched OR squeezed
 var squeezing: bool = false
 var is_sprinting: bool = false
+var on_ladder: bool = false
+## Set by a kick launch or the grappling hook: in the air, input only steers
+## and never brakes the body, until it lands.
+var keep_momentum: bool = false
+## Seconds a launch survives touching the floor (a kick off the ground starts
+## on it, and would be braked to nothing the very next frame).
+var momentum_lock: float = 0.0
 ## Height of the floor at the last frame the body stood on one. The mantle
 ## measures rise from here so a jump adds nothing to its reach (D14).
 var last_floor_y: float = INF
@@ -51,7 +59,8 @@ func tick(delta: float) -> void:
 		return
 	_update_stance(delta)
 	_apply_horizontal(delta)
-	_apply_vertical(delta)
+	if not _climb(delta):
+		_apply_vertical(delta)
 	_try_step_up()
 
 # ------------------------------------------------------------- stance ---
@@ -172,6 +181,19 @@ func _apply_horizontal(delta: float) -> void:
 		-cos(yaw) * f - sin(yaw) * s)
 	if dir.length() > 1.0:
 		dir = dir.normalized()
+	momentum_lock = maxf(0.0, momentum_lock - delta)
+	if player.is_on_floor() and momentum_lock <= 0.0:
+		keep_momentum = false
+	elif keep_momentum:
+		player.velocity.x += dir.x * speed * 1.2 * delta
+		player.velocity.z += dir.z * speed * 1.2 * delta
+		# Steering can turn a launch but never feed it (combat review).
+		var flat := Vector2(player.velocity.x, player.velocity.z)
+		if flat.length() > MAX_AIR_SPEED:
+			flat = flat.normalized() * MAX_AIR_SPEED
+			player.velocity.x = flat.x
+			player.velocity.z = flat.y
+		return
 	var accel: float = float(player.char["accel"]) if player.is_on_floor() \
 		else float(player.char["air_accel"])
 	player.velocity.x = move_toward(
@@ -188,6 +210,25 @@ func _current_speed() -> float:
 	elif crouching:
 		speed *= float(AbilityData.player()["crouch_speed_mul"])
 	return speed
+
+# ------------------------------------------------------------- ladder ---
+## On a Ladder zone: forward climbs, back descends, jump kicks off. Returns
+## false off a ladder so the normal gravity/jump runs.
+func _climb(_delta: float) -> bool:
+	on_ladder = Ladder.at(player.global_position)
+	if not on_ladder:
+		return false
+	var f := Input.get_action_strength("move_forward") \
+		- Input.get_action_strength("move_back")
+	if Input.is_action_just_pressed("jump"):
+		var yaw := player.rotation.y
+		player.velocity = Vector3(sin(yaw), 0, cos(yaw)) * 3.0 + Vector3(0, 4.0, 0)
+		on_ladder = false
+		return true
+	player.velocity.y = f * Ladder.CLIMB_SPEED
+	if player.is_on_floor() and f < 0.0:
+		player.velocity.y = 0.0
+	return true
 
 # ----------------------------------------------------------- vertical ---
 func _apply_vertical(delta: float) -> void:

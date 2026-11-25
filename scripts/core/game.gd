@@ -80,6 +80,7 @@ func spawn_mission() -> void:
 	tiers = LightTiers.new()
 	alert.reset()
 	stats = {"kills": 0, "alarms": 0, "detected": 0}
+	Ladder.clear()
 	var data: Dictionary = Levels.builder_for(selected_level).build(self)
 	level_data = data
 	level_root = data["level_root"] as Node3D
@@ -155,14 +156,15 @@ func barks(kind: String) -> Array:
 
 # ----------------------------------------------------------------- events ---
 ## Anything loud. Guards inside the radius investigate the source.
-func emit_noise(pos: Vector3, radius: float) -> void:
+## `alerting` (WeaponData "alerts", the rifle): everyone in earshot goes ALERT.
+func emit_noise(pos: Vector3, radius: float, alerting: bool = false) -> void:
 	if not is_playing():
 		return
 	panic_civilians(pos, radius)
 	for g in guards:
 		var gd := g as Guard
 		if gd != null and gd.alive and gd.global_position.distance_to(pos) <= radius:
-			gd.hear_noise(pos)
+			gd.hear_noise(pos, radius, alerting)
 	alert.on_noise(pos, radius)
 
 func shake_camera(amount: float) -> void:
@@ -178,7 +180,9 @@ func guard_alerted(g: Guard) -> void:
 	if get_tree().get_nodes_in_group("alarm_station").is_empty():
 		alert.raise("CONTACT")
 		return
-	g.alarm_run = true
+	# r8 (Gregory: "they're just running towards the nearest alarm and not
+	# fighting back"): ONE runner at a time, level-wide (GuardRunner).
+	g.brain.runner.maybe_take()
 
 ## The closest station on `from`'s floor within reach, or null. A guard walks
 ## straight lines, so a station a floor away or far off is no use to him.

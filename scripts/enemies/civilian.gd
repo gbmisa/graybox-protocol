@@ -6,7 +6,7 @@ extends CharacterBody3D
 ## person. A fleeing civilian is noise, cover and a thing in guards' way.
 ##
 ## Same damage API as Guard/Target (take_hit / take_damage / apply_knockback),
-## so every weapon already works on them.
+## so every weapon (and the hook) already works on them.
 
 signal died(c: Civilian)
 
@@ -25,8 +25,7 @@ const PANIC_LINES := [
 ]
 const IDLE_LINES := [
 	"Is it Thursday?", "...", "I'd like to be thanked.", "Do you have a minute?",
-	"My score dipped.", "Don't look at the billboard.",
-]
+	"My score dipped.", "Don't look at the billboard.",]
 
 var alive: bool = true
 var hp: float = 30.0
@@ -92,7 +91,7 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= gravity * delta
 	else:
 		velocity.y = minf(velocity.y, 0.0)
-	if alive and game != null and game.is_playing():
+	if alive and game != null and game.is_playing() and knockback_vel.length() < 2.0:   # r9: not mid-throw
 		if state == State.PANIC:
 			_panic(delta)
 		else:
@@ -246,7 +245,6 @@ func _die() -> void:
 	Gore.burst(parent, global_position + Vector3(0, 1.2, 0),
 		global_position - Vector3(0, 0.3, 0), 26)
 	Gore.stain(parent, global_position, 1.3)
-	var tw := create_tween()
-	tw.tween_property(self, "rotation:x", -PI / 2.0, 0.4)
-	tw.tween_interval(10.0)
-	tw.tween_callback(queue_free)
+	_figure.die()
+	add_to_group("corpses")
+	set_physics_process(false)

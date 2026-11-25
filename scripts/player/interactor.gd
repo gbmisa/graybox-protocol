@@ -18,6 +18,9 @@ var _tick_accum: float = 0.0
 func setup(p_player: Player) -> void:
 	player = p_player
 
+func has_target() -> bool:
+	return _target != null
+
 func tick(delta: float) -> void:
 	var found := _probe()
 	if found != _target:

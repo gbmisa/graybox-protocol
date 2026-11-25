@@ -404,3 +404,145 @@ and area"; "an area with platforming"; "graphics like a real game, original, tri
   economy, not of the courier's ethnicity; parody brand, not the real logo.
 *Tests:* all seven suites 0 (smoketest, _compound, _compound_systems, _nav, _civilians,
 _guard_stuck incl. an annex spot, _jumps).
+
+**Playtest round 7 · Opus 5.5 (2026-10-02)** — ten notes in one message. All seven suites
+0 problems; visual checks by Forward+ screenshot. **Nothing played by hand.**
+- *Alarm posts* ("an opportunity to kill guards without them being right next to an
+  alarm"): 15 posts -> 9, moved off the lanes. Every guard now walks 12m+ of navmesh to
+  his post (most 20-50m; G5/G7 ~12-14m, the agreed exceptions; the road deck and plant-room
+  top have none and just fight). `tools/alarm_reach.gd` prints it; `_check_alarm_runs`
+  enforces it. Annex posts are deep inside; nothing on Consent Way.
+- *Scoring Annex, 4x+* ("a head on approach ... a much longer platforming option involving
+  a plank walk ... a construction zone for a surveillance building ... ladder or
+  staircase"): district x [-34, 34] z [-106, -40]. Consent Way runs straight from the
+  checkpoint to a bigger annex (36x20, 2 floors + roof). West yard, back strip. East: the
+  Consent Tower site — stair, ladders, plank over the excavation, long plank, a beam and a
+  sliding pallet on the crane's hook, the tower frame, a plank onto the annex roof (~70m).
+  New `Ladder` (climb zones in `PlayerMovement._climb`). `sec_crane_run` is gone (its roof
+  plant units moved to `sec_cmp_vertical`). `smoketest_jumps` now plays the site route.
+- *The server* ("nothing visually changes ... turn off the cctv cameras and the tracking
+  eyes, visual consent scores, automatic door locks, alarm system"): `Surveillance.blackout`
+  — billboard flickers dark, score screens (new, 9 on walls + every alarm post) die,
+  cameras and eyes sag dead, every RemoteDoor releases, alarm posts die, alarm can never
+  rise again. (The billboard code worked before; it only changed text under a glow.)
+- *Bloom* "way too high": glow intensity 0.75 -> 0.3, threshold 1.05 -> 1.6, levels 2-5 -> 1-2.
+- *Gun vs crosshair* (with a Cruelty Squad screenshot): the rest pose turns the gun about
+  the fist so the barrel points at (0, 0, -0.36) on the view axis; REST_OFFSET brings it
+  closer. Side-on, nose toward the crosshair. ADS unchanged.
+- *Medium-poly models*: people are now Quaternius CC0 bodies (~12.5k tris, rigged) with
+  the Universal Animation Library (idle/walk/jog/sprint/aim/death/cower...), baked by
+  `tools/blender/people.py` with a clothing mask in vertex colours; `person.gdshader`
+  paints garish clothes; helmets/caps/pistol on bones. `Humanoid` keeps its API plus
+  `die()` and `set_aim()`. Deaths are the death animation now.
+- *Trip* ("faces and eyes that appear to watch the player ... extremely unsettling"):
+  `TripZone` x6 (subway, canal bed, undercroft, boiler basement, excavation, server room):
+  wall eyes that track and blink; faces (`trip_face_*`, 3D eyes in the sockets) that fade
+  in only outside your view and vanish when looked at; a face behind you after a while,
+  with a sting when you turn. PostFx `trip` (breathing, ghosting, acid) near them.
+- *Mascot* redone (`tools/blender/mascot.py`): glossy yellow bean, pin-prick pupils, too
+  many teeth, thumbs up, phone showing 412, a CCTV camera for a hat, plaque.
+- *Intro* -> Postal 4-style comic pages (`screen_intro.gd`, script in
+  `data/intro_script.gd`). Placeholder art = staged level stills inked by
+  `tools/gen/comicify.py`. Gregory is writing the script.
+- Not done, on purpose: "McGoySlop" (antisemitic slur term) and an ethnic-caricature joke.
+  The McGRATITUDE ads were in the old intro and are gone with it.
+
+
+## Playtest round 8 (2026-10-06)
+
+Gregory: "fix the lighting, it's extremely dark. the people models don't fit the scene.
+the colors on the intro are really bad. can you recreate the arm and gun in blender and
+let me edit the file?"
+
+- *Lighting*: `SecCmpPerimeter.night()` ambient 0.5 -> 1.35 (lighter lavender), moon
+  0.3 -> 1.0, exposure 1.0 -> 1.25, fog colour lifted; `Atmosphere.TIER_AMBIENT` DARK
+  0.28 -> 0.6, PITCH 0.05 -> 0.32 (guards' tier detection unchanged); post shader
+  vignette 0.85 -> 0.35. Mean frame brightness ~25 -> ~78 /255 along the approach.
+- *People*: `person.gdshader` now flat — faceted normals, one colour per clothing region
+  (mask snapped to the strongest channel), no normal map, skin a flat colour with the
+  texture's darkest marks kept as crude eyes/brows/mouth. Hair untextured. Meshes
+  decimated 12.5k -> 1.5k faces by new `tools/blender/people_lowpoly.py` (run once per
+  people.py bake). Rig, mask and animations survive.
+- *Intro*: `comicify.py` snaps every pixel to one fixed 15-colour print palette (Lab
+  nearest) instead of free posterizing, halftone only on the night colours, mode-filtered
+  to kill speckle. Raw panels re-rendered with the new light and people.
+- *Viewmodel*: new `art/viewmodel.blend` (our own; old WRAD/Kenney rig in a hidden
+  reference collection). `viewmodel.gd` reads `gun`/`grip`/`muzzle`/`sight_*` empties
+  from the GLB instead of constants and the suppressor measurement; the glove override is
+  gone (Blender materials are used as authored).
+
+### r8, second half (after Gregory's second message)
+
+Gregory: "Guards need to be more aggressive ... lighting ... doesn't distinguish stealthy
+areas ... the hand is facing the wrong direction ... bring this game to [a full game's]
+level ... weapons, and tools like Cruelty Squad ... spin up an agent to judge the
+graphics ... level design ... [and] an additional agent to judge." Also: "always write a
+handoff when you finish a large task" (now in CLAUDE.md).
+
+- Guards: one alarm runner level-wide (`GuardRunner`, hand-off after 3s fighting or
+  give-up); aim at capsule centre (crouch immunity was the real bug), `Spread.cone`,
+  0.15s led lock, aim cancel when unticked/LOS lost, per-shot aim spoil (>=15 summed),
+  dead men's "!" stays down, walls halve noise reach (`GuardSenses.muffled`).
+  `combat_probe` + `--crouch`.
+- Tiers in the world (`LightTiers.dress`: PITCH ReflectionProbes, LIT fills), hotter
+  lamps with bulbs and emissive floor pools (`BuildUtils._pool`), night ambient
+  (0.4,0.36,0.66)x0.6, exposure 1.45, contrast 1.3, black point, sky x0.7, SSR.
+- Viewmodel WYSIWYG: `_solve_rest`/`REST_OFFSET`/`AIM_DIST` removed; EYE camera in the
+  blend; 5 weapon collections; suffix-tolerant marker lookup; `set_model` + `dip`.
+- Arsenal/tools/pickups/eating/corpses/ammo drops/impacts/gibs/explosions — see HANDOFF-r8.
+- Sound: `tools/gen/make_sfx.py` -> `assets/audio/gen/`, looked up before Kenney.
+- HUD: `HudAmmo`, red bar, plain face under 22px, 20s/F1 help, objective band.
+- Level: `sec_r8_cover` (Consent Way van + barriers, estate shelters/wall/burnt van,
+  deck lorries + barriers), `sec_r8_clutter` (seeded litter + puddles, no collision),
+  guard A7, alarm posts deck NE / annex roof / site stair foot / estate substation,
+  `NO_GRAPPLE` boxes, target window routine (`smoketest_target`), rifle at H10.
+- Skyline tints + rooftop ads; moon ring gone; people outline pass + guard variety.
+- `smoketest_guard_stuck`: clump check only when the alarm went up (guards now fight).
+- Review tools: `judge_pack.gd`, `map_plan.gd` + `tools/gen/draw_plan.py`.
+- Scores: graphics 4.5 -> 5.5 -> 6.0; level 5.5 -> 6.0 -> 6.5; combat 4.5 -> 6.0 -> 7.0.
+- After the last rounds: decal pools emission-only (no tan rectangles), lighter rougher
+  puddles, hazard-striped anti-climb paint where the hook won't bite (`SecR8Cover.PAINT`),
+  noise muffled only if blocked at knee AND head height, kick 13 dmg (4 kicks).
+- Final run: all ten suites 0 problems (exit-time "double free" in three is pre-existing).
+
+
+## Playtest round 9 (2026-10-07)
+
+Gregory (first play of r8): "Grapple does nothing to civilians or guards. Picking up ammo
+picks up ammo for all weapons ... Grenades refused to reload ... The pump shotgun reload
+animation always reloads all six shots. Night vision does nothing. Eating corpses should
+heal five. add a three times zoom through the scope for the rifle. Remove the exit car
+from the second area ... The grapple should be versatile and even allow the player to fall
+off the side of the map ... Incorporate it as a route tool. guards should respond
+aggressively to the rifle being shot from the scaffold ... Alerted guards should not
+continue tracking through walls. The sounds are pretty good. Overall, it's a huge
+improvement."
+
+- *Grenades*: `give` pools hand + belt (1 in hand, rest spare); throwables have no reload
+  time, so the next one is in hand at once (it used to sit at 0/N forever).
+- *Pump*: reloading split into `player/weapon_reload.gd`; `shell_time` 0.42 loads one
+  shell per step until full; LMB with a shell in stops it, pumps, fires. New sounds
+  `shell_in`, `pump` (make_sfx.py).
+- *Ammo*: `WeaponData.DROP` = pistol 6 only (guards carry pistols). Boxes say what they
+  hold (`ammo` key: 9MM / SHELLS / .308 / FRAGS); a box for a gun you don't carry stays.
+- *Scope*: rifle `scope` 3.0 -> `WeaponData.zoom_for` (tan-correct 3x at any FOV); raised,
+  the gun hides and `ui/hud_scope.gd` draws the eyepiece; crosshair dot hides.
+- *Eat*: `ToolEat.HEAL` 5.
+- *Night vision*: the gain ran after the banding/black point, so black stayed black, and
+  PITCH probes zeroed ambient. Now: green gain on the raw frame (shader), night ambient x2.5
+  (`Atmosphere.NV_AMBIENT`), PITCH probes lifted (`pitch_probe` group), IR 5.0/32m, and it
+  works with TRIP FILTER off. Avenue mean 49 -> 86/255, detail kept.
+- *Car*: E3 avenue car + trigger + radio line removed (it sat on the way to the annex).
+- *Grapple*: hooks anything on the shot mask; a person gets yanked to ~1.5m (guards reel
+  0.9s and go ALERT, civilians panic and don't run mid-throw); a wall face within 2m of its
+  top anchors on the lip and hauls you over (`LEDGE_*`); range 40; `NO_GRAPPLE` emptied
+  and the anti-climb paint removed; `PlayerHealth.KILL_Y` -30 = fell off the map.
+  Routes (`sec_r9_grapple`, `CACHES`): billboard top (24, .308), Holloway House roof (28,
+  shells; its west edge is the world's), crane jib + counterweight made solid (frags).
+- *Rifle*: noise 55 -> 75 and `alerts`: everyone in earshot goes ALERT hunting the shot
+  through walls (12 guards from H10 in the test). `AlertState.on_noise` seeds `last_seen`.
+- *Through walls*: `GuardBrain` — unseen > 0.35s, an alerted guard runs to `last_seen`,
+  scans, and after 9s drops to SUSPICIOUS; he no longer paths to or faces your live position.
+- Tests: `smoketest_r9` (25 cases), arsenal's wall-top case now expects the haul-up;
+  `r9_shot.gd` renders NV/scope/perches. Final run: all eleven suites 0 problems
+  (exit-time "double free" in three is pre-existing); combat_probe 42-75 dmg/s (r8 range).

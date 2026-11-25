@@ -9,7 +9,7 @@ static func stats() -> Dictionary:
 		# --- senses ---
 		"vision_range": 34.0,
 		"vision_cone": 0.80,        # dot threshold, ~37 degree half-angle
-		"detect_rate": 1.4,         # detection meter gain/sec when visible
+		"detect_rate": 1.8,         # detection meter gain/sec when visible
 		"crouch_mul": 0.45,         # gain multiplier while player crouches
 		"sprint_mul": 1.6,          # gain multiplier while player sprints
 		"lose_rate": 0.5,           # meter decay/sec when player is unseen
@@ -20,12 +20,13 @@ static func stats() -> Dictionary:
 
 		# --- gun ---
 		# Lethal on purpose: with no health regeneration a mission is a single
-		# life, so armour choice is the difference between surviving 3 hits and
-		# 9. Tuned against the aim telegraph in guard_combat — a shot you cannot
-		# see coming at this damage would just be unfair.
+		# life, so armour choice is the difference between surviving 5 hits
+		# (street clothes), 7 (vest) and 13 (plate). Tuned against the aim
+		# telegraph in guard_combat — a shot you cannot see coming at this
+		# damage would just be unfair.
 		"gun_damage": 22.0,
-		"gun_cooldown": 1.1,
-		"gun_spread": 0.06,         # radians
+		"gun_cooldown": 0.65,      # r8: "more aggressive"
+		"gun_spread": 0.025,        # radians, a true cone (Spread.cone): ~95% hits at 10m, ~35% at 30m
 		"gun_range": 40.0,
 		"aim_time": 0.55,           # visible wind-up before firing; the dodge window
 

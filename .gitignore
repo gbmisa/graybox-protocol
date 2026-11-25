@@ -2,8 +2,14 @@
 .godot/
 
 # Exported builds. The Linux binary alone is 73MB; rebuild it with the export
-# command in HANDOFF.md rather than versioning it.
+# command in CLAUDE.md rather than versioning it.
 build/
+
+# Tool output (tools/*shot*.gd, judge_pack, map_plan) — regenerate, don't version.
+screenshots/
+
+# Blender autosave backups
+*.blend1
 
 # OS noise
 .DS_Store

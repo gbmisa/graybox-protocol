@@ -59,3 +59,46 @@ static func stain(parent: Node3D, pos: Vector3, size: float = 1.1) -> void:
 		var old = _stains.pop_front()
 		if is_instance_valid(old):
 			old.queue_free()
+
+## Overkill (r8): the body comes apart — a big spray, heavier meat chunks,
+## a wide stain, and the figure is gone. Marks the corpse "gibbed".
+static func gib(body: Node3D, from_pos: Vector3) -> void:
+	if body == null or not is_instance_valid(body) or body.has_meta("gibbed"):
+		return
+	body.set_meta("gibbed", true)
+	var parent := body.get_parent() as Node3D
+	var c := body.global_position + Vector3(0, 1.0, 0)
+	burst(parent, c, from_pos, 60)
+	burst(parent, c + Vector3(0, 0.5, 0), from_pos, 30)
+	_chunks(parent, c, from_pos)
+	stain(parent, body.global_position, 2.4)
+	for mi in body.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).visible = false
+	AudioSynth.play_at(parent, "gib", 0.0, randf_range(0.9, 1.1))
+
+static func _chunks(parent: Node3D, pos: Vector3, from_pos: Vector3) -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.emitting = true
+	p.amount = 14
+	p.lifetime = 2.5
+	p.explosiveness = 1.0
+	p.direction = (pos - from_pos).normalized() + Vector3(0, 0.8, 0)
+	p.spread = 70.0
+	p.initial_velocity_min = 3.0
+	p.initial_velocity_max = 8.0
+	p.gravity = Vector3(0, -16.0, 0)
+	p.angular_velocity_min = -400.0
+	p.angular_velocity_max = 400.0
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.6
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.16, 0.12, 0.2)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.62, 0.12, 0.14)
+	m.roughness = 0.4
+	bm.material = m
+	p.mesh = bm
+	p.position = pos
+	parent.add_child(p)
+	p.get_tree().create_timer(3.0).timeout.connect(p.queue_free)

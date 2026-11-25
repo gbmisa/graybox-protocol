@@ -37,12 +37,14 @@ static func _board(root: Node3D) -> void:
 	glow.emission = Color(0.35, 0.20, 0.05)
 	glow.emission_energy_multiplier = 1.2
 	board.material_override = glow
+	board.add_to_group("score_board_face")   # Surveillance.blackout darkens it
 	var l := SecCmpDressing.plate_sign(root, "HOLLOWAY ROAD\nCOLLECTIVE CONSENT SCORE\n412 ▼",
 		Vector3(0, 19, 29.25), 0.0, Color(1.0, 0.75, 0.3), 150, false)
 	l.pixel_size = 0.02
 	l.add_to_group("score_board")   # SecondaryScore rewrites it
 	l.outline_size = 0
-	BuildUtils.lamp(root, Vector3(0, 19, 34), Color(1.0, 0.7, 0.35), 4.0, 22.0)
+	var lamp := BuildUtils.lamp(root, Vector3(0, 19, 34), Color(1.0, 0.7, 0.35), 4.0, 22.0)
+	lamp.add_to_group("score_board_light")
 
 static func _scaffold(root: Node3D) -> void:
 	var m := BuildUtils.METAL

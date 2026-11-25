@@ -37,6 +37,12 @@ static func create(p_game: GrayboxGame, root: Node3D) -> MissionCompound:
 func _build(root: Node3D) -> void:
 	for t in D.TIERS:
 		game.tiers.add(t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7])
+	game.tiers.dress(root)
+	ToolGrapple.no_anchor = D.NO_GRAPPLE.duplicate()
+	for w in D.WEAPONS:
+		WeaponPickup.place(game, root, String(w[0]), w[1], int(w[2]))
+	for c in D.CACHES:
+		AmmoPickup.drop(game, c[1], c[0], root)
 	_entries(root)
 	_inner_doors(root)
 	_switches(root)
@@ -47,10 +53,11 @@ func _build(root: Node3D) -> void:
 	var t := Target.new()
 	root.add_child(t)
 	t.setup(game, D.TARGET_LANE[0], D.TARGET_LANE.duplicate())
+	t.visit_spot = D.TARGET_VISIT
 	game.target = t
 
 # ------------------------------------------------------------------ gates ---
-## The gate out to the car. Level one is the Regular with his base kit: no
+## The gate out to the avenue. Level one is the Regular with his base kit: no
 ## picks, no wards, no breaching — every door he meets is open, shut from the
 ## far side, or worked by a switch somewhere else.
 func _entries(root: Node3D) -> void:
@@ -107,7 +114,10 @@ func _puddle_off() -> void:
 ## Courtyard disc goes DARK — tier swapped, not deleted — and the mast dies.
 func _mast_off() -> void:
 	for l in get_tree().get_nodes_in_group("mast_lamp"):
-		(l as Light3D).visible = false
+		if l is WatcherEye:
+			(l as WatcherEye).power_off()
+		else:
+			(l as Node3D).visible = false
 	game.tiers.set_tier("mast_disc", "DARK")
 	game.hud.add_killfeed("Mast isolated — courtyard dark")
 
@@ -138,6 +148,14 @@ func post_guard(g: Guard) -> void:
 
 func on_calm() -> void:
 	pass
+
+## The Score is wiped (Surveillance.blackout): every automatic lock in the
+## level lets go — the security pair, the continuity suite, the boiler house,
+## the gate — and none of them can lock again (the alarm is dead too).
+func blackout() -> void:
+	for d in csd + [panic_door, boiler_door, gate]:
+		(d as RemoteDoor).release()
+	game.hud.add_killfeed("Door locks offline")
 
 func _reinforce(ids: Array) -> void:
 	if game.no_guards:

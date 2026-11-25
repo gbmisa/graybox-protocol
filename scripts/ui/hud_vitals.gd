@@ -13,11 +13,11 @@ func build(root: Control) -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
 	box.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	box.position = Vector2(12, -78)
+	box.position = Vector2(18, -92)
 	ignore(box)
-	_hp_label = make_label("HP", 14)
+	_hp_label = make_label("HP", 26)
 	box.add_child(_hp_label)
-	_hp_bar = make_bar(200, 14)
+	_hp_bar = make_bar(240, 16)
 	box.add_child(_hp_bar)
 	_resource_label = make_label("", 12, DIM)
 	box.add_child(_resource_label)
@@ -39,10 +39,11 @@ func tick(_delta: float) -> void:
 		return
 	var p := player()
 	_hp_bar.value = p.health.fraction() * 100.0
-	_hp_label.text = "HP  %d / %d" % [int(p.hp()), int(p.max_hp())]
+	_hp_label.text = "+ %d" % int(p.hp())
 	# Flash the label while i-frames are up, so the dodge reads as having
 	# actually done something.
 	_hp_label.add_theme_color_override("font_color",
-		Color(0.4, 0.9, 1.0) if p.health.is_invulnerable() else Color.WHITE)
+		Color(0.4, 0.9, 1.0) if p.health.is_invulnerable()
+		else (Color(1.0, 0.3, 0.2) if p.health.fraction() < 0.35 else Color.WHITE))
 	if p.max_mana > 0.0:
 		_mana_bar.value = clampf(p.mana / p.max_mana * 100.0, 0.0, 100.0)

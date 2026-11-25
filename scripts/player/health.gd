@@ -11,6 +11,10 @@ extends Node
 
 signal died
 
+## r9: below this you have fallen off the map (the grapple can swing you over
+## a boundary wall, Gregory asked that it can). Lowest floor is -3.
+const KILL_Y := -30.0
+
 var player: Player
 var hp: float = 100.0
 var max_hp: float = 100.0
@@ -38,6 +42,14 @@ func take_damage(dmg: float) -> void:
 	if hp <= 0.0:
 		hp = 0.0
 		died.emit()
+
+## Off the edge of the world: dead, armour and i-frames notwithstanding.
+func fall() -> void:
+	if hp <= 0.0:
+		return
+	hp = 0.0
+	player.game.hud.show_message("YOU FELL OFF THE MAP", 3.0)
+	died.emit()
 
 ## Grant invulnerability for a fixed window. Ticked down in tick() rather than
 ## awaited, so it cannot outlive a mission restart or fire on a freed node.

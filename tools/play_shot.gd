@@ -74,7 +74,8 @@ func _run(game: GrayboxGame) -> void:
 		await physics_frame
 	await _snap("tier_lit")
 	Engine.time_scale = 0.05   # slow the recovery so the kick is on camera
-	p.kit.call("_fire_pistol")
+	var wp: PlayerWeapons = p.kit.get("weapons")
+	wp.call("_fire", wp.weapon())
 	for i in 2:
 		await physics_frame
 	await _snap("kick")
@@ -82,6 +83,27 @@ func _run(game: GrayboxGame) -> void:
 		await physics_frame
 	await _snap("kick2")
 	Engine.time_scale = 1.0
+	# r8: every weapon at rest, then night vision in the dark.
+	for id in ["smg", "shotgun", "rifle", "grenade"]:
+		wp.select(id)
+		for i in 40:
+			await physics_frame
+		await _snap("w_" + id)
+	wp.select("pistol")
+	p.global_position = Vector3(0, 0.1, 132)   # the subway (PITCH)
+	p.rotation.y = 0.0
+	for i in 30:
+		await physics_frame
+	await _snap("nv_off")
+	Input.action_press("night_vision")
+	await physics_frame
+	Input.action_release("night_vision")
+	for i in 30:
+		await physics_frame
+	await _snap("nv_on")
+	Input.action_press("night_vision")
+	await physics_frame
+	Input.action_release("night_vision")
 	game.alert.raise("TEST")
 	for i in 40:
 		await physics_frame

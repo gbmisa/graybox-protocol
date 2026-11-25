@@ -29,7 +29,8 @@ func build(root: Control) -> void:
 	_box.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_box.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_box.position.y = -150
+	_box.position.y = -46
+	_box.custom_minimum_size.x = 0
 	ignore(_box)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 2)

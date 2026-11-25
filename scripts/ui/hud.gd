@@ -9,6 +9,8 @@ extends CanvasLayer
 ##   reticle    crosshair, hitmarker, damage vignette
 ##   prompt     interaction prompt and channel progress
 ##   subtitle   the PA (and anything else that talks), as a subtitle
+##   ammo       the weapon in hand and its rounds (r8)
+##   scope      the rifle's scope view while aimed (r9)
 ##
 ## Runs with PROCESS_MODE_ALWAYS so it keeps drawing while the tree is paused.
 
@@ -21,6 +23,8 @@ var feed: HudFeed
 var reticle: HudReticle
 var prompt: HudPrompt
 var subtitle: HudSubtitle
+var ammo: HudAmmo
+var scope: HudScope
 
 var _panels: Array[HudPanel] = []
 
@@ -37,7 +41,9 @@ func _ready() -> void:
 	reticle = HudReticle.new()
 	prompt = HudPrompt.new()
 	subtitle = HudSubtitle.new()
-	_panels = [vitals, abilities, feed, reticle, prompt, subtitle]
+	ammo = HudAmmo.new()
+	scope = HudScope.new()
+	_panels = [vitals, abilities, feed, scope, reticle, prompt, subtitle, ammo]
 	for p in _panels:
 		add_child(p)
 		p.setup(self, root)

@@ -17,9 +17,12 @@ static func all() -> Array:
 	return out
 
 const ROWS := [
-	# Scoring Annex: clerks counting.
-	[Vector3(-7, 0, -50.5), Vector3(-1, 0, -50.5)],
-	[Vector3(-9, 4, -55)],
+	# Scoring Annex: clerks counting, a receptionist, a smoker on the Way.
+	[Vector3(-10, 0, -87.5), Vector3(-4, 0, -87.5)],
+	[Vector3(-13.5, 4, -86)],
+	[Vector3(10, 4, -88)],
+	[Vector3(-3, 0, -81)],
+	[Vector3(-14, 0, -52)],
 	# Spawn street.
 	[Vector3(-6.5, 0, 190.5)],
 	[Vector3(-4, 0, 182), Vector3(5, 0, 182)],

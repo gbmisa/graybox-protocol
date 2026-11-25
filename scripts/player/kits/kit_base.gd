@@ -19,6 +19,10 @@ func _on_setup() -> void:
 func tick(_delta: float) -> void:
 	pass
 
+## After movement has set this frame's velocity, before move_and_slide.
+func post_move(_delta: float) -> void:
+	pass
+
 ## The Wizard returns false — his Shift is the dash, not a sprint.
 func allows_sprint() -> bool:
 	return true
@@ -32,11 +36,7 @@ func hud_lines() -> Array:
 func _hitscan(max_dist: float, spread_rad: float = 0.0) -> Dictionary:
 	var from := player.camera.global_position
 	var dir := player.aim_dir()
-	if spread_rad > 0.0:
-		var axis := dir.cross(Vector3.UP)
-		if axis.length() < 0.01:
-			axis = dir.cross(Vector3.RIGHT)
-		dir = dir.rotated(axis.normalized(), randf_range(0.0, spread_rad))
+	dir = Spread.cone(dir, spread_rad)
 	var q := PhysicsRayQueryParameters3D.create(from, from + dir * max_dist)
 	q.exclude = [player.get_rid()]
 	q.collision_mask = VerbData.SHOT_MASK

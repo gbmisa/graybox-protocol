@@ -8,7 +8,7 @@ extends RefCounted
 ##
 ## Prefixes: A approach · H high routes · C campus outdoors · G main ground
 ## floor · F main first floor · R main roof · Y gym · U undercroft · N the
-## Scoring Annex.
+## Scoring Annex district · S the Consent Tower site.
 ## Positions are where the tag floats, not the floor.
 
 const SHOW := true
@@ -113,19 +113,37 @@ const ROOMS := [
 	["R04", "PLANT ROOM TOP", Vector3(-3.5, 12.0, -15)],
 	["R05", "WATER TANK", Vector3(-5.4, 13.2, -14.6)],
 	# Scoring Annex.
-	["N01", "ANNEX YARD", Vector3(-12, 2.4, -50)],
-	["N02", "CHECKPOINT", Vector3(0, 2.4, -42)],
-	["N03", "DOCK", Vector3(16, 2.4, -46)],
-	["N04", "SERVICE CRAWL", Vector3(14.6, 1.6, -39.2)],
-	["N05", "ANNEX HALL", Vector3(-4, 2.6, -50)],
-	["N06", "ANNEX OFFICE", Vector3(-8, 6.6, -56)],
-	["N07", "SERVER ROOM", Vector3(1, 6.8, -52)],
-	["N08", "ANNEX CORRIDOR", Vector3(-4, 6.6, -48)],
-	["N09", "FIRE STAIR", Vector3(8, 6.6, -55)],
-	["N10", "ANNEX ROOF", Vector3(-4, 9.6, -52)],
-	["N11", "GENERATOR", Vector3(-18, 2.4, -54.5)],
-	["N12", "BACK STRIP", Vector3(0, 2.4, -60)],
-	["N13", "CRANE RUN", Vector3(14.5, 8.6, -46)],
+	["N01", "CHECKPOINT", Vector3(0, 2.4, -42)],
+	["N02", "CONSENT WAY", Vector3(0, 2.6, -55)],
+	["N03", "GUARD BOOTH", Vector3(-10, 3.4, -58.5)],
+	["N04", "FRONT STEPS", Vector3(0, 2.0, -73.5)],
+	["N05", "STAFF PARKING", Vector3(-24, 2.2, -50)],
+	["N06", "SERVICE CRAWL", Vector3(-15, 1.6, -42.2)],
+	["N07", "GENERATOR PEN", Vector3(-30, 2.2, -72)],
+	["N08", "CONTAINER STACK", Vector3(-29, 6.4, -89)],
+	["N09", "BACK STRIP", Vector3(-8, 2.4, -101)],
+	["N10", "ANNEX LOBBY", Vector3(0, 2.6, -79)],
+	["N11", "SECURITY OFFICE", Vector3(-12, 2.6, -78)],
+	["N12", "ANNEX HALL", Vector3(-4, 2.6, -88)],
+	["N13", "STAIR HALL", Vector3(11, 2.6, -80.5)],
+	["N14", "ANNEX 1F CORRIDOR", Vector3(-8, 6.6, -78)],
+	["N15", "ANNEX OFFICES", Vector3(-12, 6.6, -88)],
+	["N16", "SERVER ROOM", Vector3(0, 6.8, -90)],
+	["N17", "EAST OFFICE", Vector3(12, 6.6, -88)],
+	["N18", "ANNEX ROOF", Vector3(-4, 9.6, -86)],
+	["N19", "SITE OFFICE", Vector3(14.7, 3.8, -47.5)],
+	["S01", "SITE STAIR", Vector3(32.5, 2.4, -44)],
+	["S02", "SCAFFOLD L1", Vector3(30, 4.6, -50)],
+	["S03", "PLANK OVER THE PIT", Vector3(32.8, 4.4, -66)],
+	["S04", "EXCAVATION", Vector3(28, -1.0, -67)],
+	["S05", "SCAFFOLD L2", Vector3(31, 7.6, -76)],
+	["S06", "LONG PLANK", Vector3(25, 7.4, -76)],
+	["S07", "CRANE BEAM", Vector3(21, 7.8, -82.5)],
+	["S08", "HOOK PALLET", Vector3(21, 8.2, -89.6)],
+	["S09", "TOWER FLOOR 1", Vector3(28, 5.6, -102)],
+	["S10", "TOWER FLOOR 2", Vector3(25, 9.6, -100)],
+	["S11", "TOWER DECK", Vector3(29, 13.6, -102)],
+	["S12", "ROOF PLANK", Vector3(20, 9.4, -95)],
 	# Gym.
 	["Y01", "GYM STORE", Vector3(22, 2.3, -17)],
 	["Y02", "SHUTTER CRAWL", Vector3(29, 0.6, -17)],

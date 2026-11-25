@@ -40,7 +40,7 @@ func handle_input(event: InputEvent) -> void:
 
 func tick(delta: float) -> void:
 	player.camera.fov = Settings.fov() * zoom
-	recoil = move_toward(recoil, 0.0, (recoil * 9.0 + 0.02) * delta)
+	recoil = move_toward(recoil, 0.0, (absf(recoil) * 9.0 + 0.02) * delta)
 	player.head.rotation.x = recoil
 	if shake <= 0.0:
 		player.camera.position = Vector3.ZERO
@@ -55,4 +55,4 @@ func add_shake(amount: float) -> void:
 	shake = minf(1.0, shake + amount)
 
 func add_recoil(amount: float) -> void:
-	recoil = minf(0.12, recoil + amount)
+	recoil = clampf(recoil + amount, -0.12, 0.12)

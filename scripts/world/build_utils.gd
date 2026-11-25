@@ -22,6 +22,7 @@ const RED := Color(1.0, 0.25, 0.25)
 
 ## Interior lighting. There is no global illumination, so any enclosed space
 ## with no lamp in it renders as a black void — every interior needs its own.
+const LAMP_GAIN := 1.7
 const LAMP_FLUORO := Color(0.82, 0.90, 1.00)   # offices, mezzanine
 const LAMP_SERVICE := Color(1.00, 0.86, 0.62)  # undercroft, plant, dock
 const LAMP_ARCANE := Color(0.72, 0.45, 1.00)   # the Wizard's shaft
@@ -54,15 +55,69 @@ static func box(parent: Node3D, pos: Vector3, size: Vector3, color: Color,
 ## A point light. Shadows are off deliberately — the level carries ~30 of
 ## these and shadowed omnis are the expensive kind.
 static func lamp(parent: Node3D, pos: Vector3, color: Color,
-		energy: float = 2.0, reach: float = 14.0) -> OmniLight3D:
+		energy: float = 2.0, reach: float = 14.0, bulb_on: bool = true) -> OmniLight3D:
 	var l := OmniLight3D.new()
 	l.position = pos
 	l.light_color = color
-	l.light_energy = energy
-	l.omni_range = reach
+	# r8: lamps are the night's visibility now — hotter, a little further,
+	# falling off hard so each reads as a pool — and you can see the bulb.
+	l.light_energy = energy * LAMP_GAIN
+	l.omni_range = reach * 1.1
+	l.omni_attenuation = 1.6
 	l.shadow_enabled = false
 	parent.add_child(l)
+	if not bulb_on:
+		return l
+	var bulb := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.12
+	sm.height = 0.24
+	sm.radial_segments = 8
+	sm.rings = 4
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = color
+	m.emission_enabled = true
+	m.emission = color
+	m.emission_energy_multiplier = 3.0
+	sm.material = m
+	bulb.mesh = sm
+	bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	l.add_child(bulb)
+	l.add_child(_pool(color, reach))
 	return l
+
+## The light's footprint on whatever is under it (r8 graphics review: "no
+## frame shows a warm pool on the ground"): a downward decal glowing in the
+## lamp's colour, brightest under the bulb, so a lit patch reads from 30m.
+static var _pool_tex: GradientTexture2D
+static func _pool(color: Color, reach: float) -> Decal:
+	if _pool_tex == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 1))
+		g.set_color(1, Color(1, 1, 1, 0))
+		g.add_point(0.45, Color(1, 1, 1, 0.45))
+		_pool_tex = GradientTexture2D.new()
+		_pool_tex.gradient = g
+		_pool_tex.fill = GradientTexture2D.FILL_RADIAL
+		_pool_tex.fill_from = Vector2(0.5, 0.5)
+		_pool_tex.fill_to = Vector2(1.0, 0.5)
+		_pool_tex.width = 128
+		_pool_tex.height = 128
+	var d := Decal.new()
+	var r := clampf(reach * 0.45, 2.5, 6.0)
+	d.size = Vector3(r * 2.0, 9.0, r * 2.0)
+	d.position = Vector3(0, -4.5, 0)
+	d.texture_albedo = _pool_tex
+	d.texture_emission = _pool_tex
+	d.albedo_mix = 0.0       # light only: never paint the floor (review: "tan rectangles")
+	d.modulate = Color(color.r * 0.35, color.g * 0.28, color.b * 0.18, 1.0)
+	d.emission_energy = 0.6
+	d.normal_fade = 0.6     # floors only: walls and kerbs facing sideways don't get it
+	d.upper_fade = 0.1
+	d.lower_fade = 0.5
+	d.cull_mask = 1
+	return d
 
 ## Places a lamp at each of `spots`, saving a loop in every section.
 static func lamps(parent: Node3D, spots: Array, color: Color,

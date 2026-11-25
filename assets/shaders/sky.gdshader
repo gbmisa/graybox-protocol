@@ -49,10 +49,11 @@ void sky() {
 	float st = step(0.985, hash(cell)) * smoothstep(0.18, 0.0, length(fract(sp) - off));
 	st *= 0.6 + 0.4 * sin(TIME * 3.0 + hash(cell) * 40.0);
 	col += vec3(st) * smoothstep(0.08, 0.4, h);
-	// The moon, with a halo, and a faint second ring that shouldn't be there.
+	// r8 review: "the sky outshines the playspace" — the sky sits back.
+	col *= 0.7;
+	// The moon, with a halo.
 	float m = dot(d, normalize(moon_dir));
-	col += moon_col * smoothstep(0.9975, 0.9985, m);
+	col += moon_col * smoothstep(0.9975, 0.9985, m) * 0.8;
 	col += moon_col * pow(max(m, 0.0), 180.0) * 0.35;
-	col += vec3(0.4, 0.9, 0.5) * smoothstep(0.004, 0.0, abs(m - 0.985)) * 0.25;
 	COLOR = col;
 }

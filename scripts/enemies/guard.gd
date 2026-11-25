@@ -9,8 +9,7 @@ extends CharacterBody3D
 ##   brain    patrol -> suspicious -> alert movement
 ##   combat   hitscan pistol with spread
 ##
-## The AI stays deliberately dumb: no flanking, no squad coordination. The
-## complexity budget goes to character kits and level routing instead.
+## Deliberately dumb: no flanking, no squads (CLAUDE.md rule 5).
 
 signal died(g: Guard)
 
@@ -38,6 +37,7 @@ var hold_yaw: float = 0.0
 var last_seen: Vector3 = Vector3.ZERO
 var investigate_pos: Vector3 = Vector3.ZERO
 var knockback_vel: Vector3 = Vector3.ZERO
+var stagger: float = -99.0   # seconds of kick-reel left; counts down past 0 (ToolKick reads it for immunity)
 
 var body: GuardBody
 var senses: GuardSenses
@@ -105,18 +105,35 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 	var player := game.get_player()
-	if player != null and player.alive:
-		senses.tick(player, delta)
-	brain.tick(player, delta)
-	body.tick(delta)
+	stagger -= delta    # kicked (r8): while > 0 he reels — no senses, no brain
+	if stagger > 0.0:
+		velocity = Vector3(0, velocity.y, 0)
+	else:
+		if player != null and player.alive:
+			senses.tick(player, delta)
+		brain.tick(player, delta)
+		body.tick(delta)
 	velocity.x += knockback_vel.x
 	velocity.z += knockback_vel.z
 	knockback_vel = knockback_vel.move_toward(Vector3.ZERO, 30.0 * delta)
 	move_and_slide()
 
 # ---------------------------------------------------------- external API ---
-func hear_noise(pos: Vector3) -> void:
-	if not alive or state == State.ALERT:
+func hear_noise(pos: Vector3, radius: float = 0.0, alerting: bool = false) -> void:
+	if not alive:
+		return
+	# r9 (Gregory: "guards should respond aggressively to the rifle being shot
+	# from the scaffold. It's very loud"): an alerting shot carries through
+	# walls and puts him on ALERT, hunting the spot it came from — unless he
+	# can already see you, in which case he simply keeps fighting.
+	if alerting:
+		if state != State.ALERT or not brain.sees_player():
+			last_seen = pos
+		detect = 1.0
+		if state != State.ALERT:
+			enter_alert()
+		return
+	if state == State.ALERT or senses.muffled(pos, radius):
 		return
 	enter_suspicious(pos, maxf(detect, 0.5))
 

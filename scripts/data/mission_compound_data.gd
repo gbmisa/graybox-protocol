@@ -4,17 +4,16 @@ extends RefCounted
 ## reacts to (LEVEL-compound.md §5–§9). No behaviour here.
 
 ## Extractions, unlabelled: entering the sphere wins once the target is down.
-## Diegetic hints only — the van idles in the pit, the deck beacon blinks, the
-## car's headlights are on.
+## Diegetic hints only — the van idles in the pit, the deck beacon blinks.
+## r9: the avenue car (E3) is gone — it sat on the way to the annex and
+## Gregory drove off in it by accident going for the secondary objective.
 const EXTRACTIONS := [
 	{"name": "van", "pos": Vector3(-38, -2.2, 6), "radius": 3.5},       # E1, culvert, crawl only
-	{"name": "car", "pos": Vector3(0, 0, -34), "radius": 3.5},          # E3, gate lever
 	{"name": "heli", "pos": Vector3(23, 11.2, -7), "radius": 3.6},      # E2, helipad stair
 ]
 
 const RADIO := {
 	"van": "\"Fine. Get in. Don't tell me the number.\"",
-	"car": "\"Fine. Get in. Don't tell me the number.\"",
 	"heli": "\"Continuity flight's cleared for one. He won't be needing it.\"",
 }
 
@@ -22,12 +21,13 @@ const RADIO := {
 ## LIT. Nested volumes come first — the first match wins — so the duct and the
 ## ceiling void can sit inside the roof's and the hall's boxes.
 const TIERS := [
-	["annex_gen", -20, -14, 0, 6, -58, -50, "PITCH"],
-	["annex_crawl", 12, 18, 0, 6, -44, -40, "PITCH"],
-	["annex_hall", -14, 6, 0, 4, -58, -46, "LIT"],
-	["annex_1f", -14, 6, 4, 8, -58, -46, "LIT"],
-	["checkpoint", -10, 4, 0, 6, -46, -40, "LIT"],
-	["annex_yard", -20, 20, 0, 14, -62, -40, "DARK"],
+	# Scoring Annex district (r7).
+	["annex_crawl", -17, -13, 0, 3, -44, -38, "PITCH"],
+	["annex_gen", -34, -26, 0, 4, -80, -70, "PITCH"],
+	["annex_inside", -18, 18, 0, 8, -96, -76, "LIT"],
+	["consent_way", -12, 12, 0, 10, -76, -40, "LIT"],
+	["annex_site", 18.4, 34, -3, 30, -106, -40, "DARK"],
+	["annex_district", -34, 34, 0, 30, -106, -40, "DARK"],
 	["subway", -1.5, 1.5, 0, 3.0, 112, 138, "PITCH"],
 	["app_culvert", -31, -29, 0, 1.2, 112, 138, "PITCH"],
 	["tower_lobby", -24, -14, 0, 3.6, 178, 188, "LIT"],
@@ -78,6 +78,9 @@ const ISOLATOR_POS := Vector3(-21.7, -1.6, -9.2)
 ## The target and where he runs. Paces the hall's lane; on ALARM runs out of
 ## the north-stair door, down, along the north corridor, into G.04.
 const TARGET_LANE := [Vector3(-6, 4, -16), Vector3(2, 4, -16)]
+## r8: his routine stop — the 1F south window, watching the score. Clear
+## sightlines (measured) from H10 (the scaffold, where the rifle is) and H11.
+const TARGET_VISIT := Vector3(0, 4, -2.8)
 const FLEE_PATH := [
 	Vector3(-8.5, 4, -15.8), Vector3(-9.3, 4, -19.2), Vector3(-11.5, 4, -19.2),
 	Vector3(-11.5, 0, -13.0), Vector3(-16, 0, -12.8), Vector3(-16, 0, -14.8),
@@ -112,13 +115,13 @@ const POSTS := [
 	[Vector3(6.0, 8.4, -14.5), -PI / 2.0],  # main roof, on the crate stair and duct
 	[Vector3(6.5, 0, -11.0), -PI / 2.0],    # canteen, on the service door
 	[Vector3(-20.5, 0, -4.0), PI / 2.0],    # west corridor, on the west exit
-	# Scoring Annex.
-	[Vector3(12.8, 0, -44.0), PI / 2.0],    # dock nest, over the yard
-	[Vector3(-2.0, 0, -48.5), PI],          # hall, inside the south door
-	[Vector3(4.0, 4.0, -48.3), PI / 2.0],   # 1F corridor, behind the barricade
-	[Vector3(3.0, 4.0, -55.5), PI],         # server room
-	[Vector3(7.5, 4.0, -55.0), PI],         # fire-stair landing
-	[Vector3(-16.0, 0, -49.0), PI],         # generator strip
+	# Scoring Annex district (r7).
+	[Vector3(-5.5, 0, -73.0), PI],          # front steps, west of the door
+	[Vector3(2.0, 4.0, -77.0), PI],         # 1F corridor, barricade, over the Way
+	[Vector3(0.0, 4.0, -85.5), PI],         # server anteroom
+	[Vector3(-14.0, 0, -84.0), 0.0],        # hall, west door
+	[Vector3(15.0, 0, -84.0), -PI / 2.0],   # hall, on the site door
+	[Vector3(-9.5, 0, -61.5), PI],          # booth
 ]
 const LATER_WAVE := ["R3", "R5"]
 const CAP := 5
@@ -148,3 +151,29 @@ const PA := [
 		"WELCOME TO HOLLOWAY CAMPUS.\nYOUR VISIT HAS BEEN SCORED."],
 ]
 const LOCATE_RANGE := 40.0
+
+## r8: the guns you find (WeaponPickup), each at the end of a detour.
+## [weapon, where (dropped to the floor below), count]
+const WEAPONS := [
+	["smg", Vector3(36, 2.2, 180), 1],          # A05 garage back strip, past bay 3
+	["shotgun", Vector3(-23, 2.2, 96), 1],      # A16 the narrowboat
+	["grenade", Vector3(40, 6.5, 77), 2],       # H04 pumping-station roof, end of the pipe bridge
+	["grenade", Vector3(-2, 7.6, -14), 2],      # R03 the ceiling void over the hall
+	["grenade", Vector3(29, 14.2, -102), 3],    # S11 the Consent Tower deck, top of the site
+	["rifle", Vector3(12.6, 7.4, 31), 1],       # H10 the score-maintenance scaffold: it overlooks his window
+	["pistol", Vector3(-30, 6.5, 170.7), 1],    # H01 deck-access balcony: a spare mag
+]
+
+## r9: ammo caches only the grappling hook reaches (SecR9Grapple dresses the
+## spots). The non-pistol guns live on these and what they came with.
+## [amounts, position]
+const CACHES := [
+	[{"rifle": 5}, Vector3(-11.0, 24.2, 28.9)],      # on top of the billboard: the sniper's perch
+	[{"shotgun": 6}, Vector3(-34.0, 28.0, 186.0)],   # HOLLOWAY HOUSE roof: west edge is the end of the world
+	[{"grenade": 2}, Vector3(21.0, 24.2, -96.0)],    # the crane's counterweight over the annex
+]
+
+## Places the hook won't bite (ToolGrapple.no_anchor). r8 painted the
+## compound wall top and annex roof anti-climb; r9 (Gregory: grapple as a
+## route tool, versatile enough to fall off the map) emptied it.
+const NO_GRAPPLE := []
